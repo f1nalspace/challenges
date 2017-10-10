@@ -1,5 +1,6 @@
 #define GLEW_STATIC
 #include <GL\glew.h>
+#include <GL/wglew.h>
 
 #define FPL_IMPLEMENTATION
 #include "final_platform_layer.hpp"
@@ -36,6 +37,8 @@ int main(int argc, char **args) {
 		if (glewInitResult != GLEW_NO_ERROR) {
 			// @TODO: Log error
 		}
+
+		wglSwapIntervalEXT(1);
 
 		SetWindowResizeable(true);
 		SetWindowArea(1280, 720);

@@ -54,6 +54,9 @@ namespace finalspace {
 			} else if (playerController.moveDown.isDown) {
 				accel.y = -1.0f * speed;
 			}
+			if (accel.x != 0 || accel.y != 0) {
+				accel = Normalize(accel);
+			}
 			position += input.deltaTime * accel;
 		}
 

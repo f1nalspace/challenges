@@ -2,6 +2,8 @@
 
 #include "final_types.h"
 
+#include <math.h>
+
 namespace finalspace {
 	namespace maths {
 
@@ -99,6 +101,18 @@ namespace finalspace {
 			left.x *= right;
 			left.y *= right;
 			return(left);
+		}
+
+		inline f32 GetLength(const Vec2f &vec) {
+			f32 result = (f32)sqrtf(vec.x * vec.x + vec.y * vec.y);
+			return(result);
+		}
+
+		inline Vec2f Normalize(const Vec2f &vec) {
+			f32 len = GetLength(vec);
+			f32 invLen = len != 0.0f ? 1.0f / len : 1.0f;
+			Vec2f result = invLen * vec;
+			return(result);
 		}
 
 	};
