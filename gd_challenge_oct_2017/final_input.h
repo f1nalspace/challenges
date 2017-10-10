@@ -9,9 +9,15 @@ namespace finalspace {
 		struct ButtonState {
 			b32 isDown;
 			s32 halfTransitionCount;
+
+			inline bool WasPressed() { const
+				bool result = ((halfTransitionCount > 1) || ((halfTransitionCount == 1) && (isDown)));
+				return(result);
+			}
 		};
 
 		struct Controller {
+			u32 playerIndex;
 			union {
 				struct {
 					ButtonState moveUp;
@@ -31,7 +37,7 @@ namespace finalspace {
 				};
 				Controller controller[1];
 			};
-			u32 playerControllerIndex;
+			u32 playerOneControllerIndex;
 		};
 
 	};

@@ -32,7 +32,8 @@ namespace finalspace {
 
 			gravity = Vec2f(0, -10);
 
-			player = Player();
+			Player &player = players[0];
+			player.position = Vec2f();
 			player.ext = Vec2f(0.5f, 0.5f);
 
 			float wallDepth = 0.5f;
@@ -77,6 +78,7 @@ namespace finalspace {
 			glClear(GL_COLOR_BUFFER_BIT);
 
 			// Draw player
+			const Player &player = players[0];
 			glColor3f(1.0f, 1.0f, 1.0f);
 			glPushMatrix();
 			glTranslatef(player.position.x, player.position.y, 0.0f);
@@ -105,36 +107,47 @@ namespace finalspace {
 		}
 
 		void Game::Update(const Input &input) {
-			const Controller &playerController = input.controller[input.playerControllerIndex];
-			Vec2f playerAcceleration = Vec2f();
+			const Controller &playerController = input.controller[input.playerOneControllerIndex];
+
+			Player &player = players[playerController.playerIndex];
+
+			// Set acceleration based on player input
+			Vec2f acceleration = Vec2f();
+			
+			// @TODO: Is this constant all the time?
 			f32 speed = 20.0f;
+			
 			if (playerController.moveLeft.isDown) {
-				playerAcceleration.x = -1.0f;
+				acceleration.x = -1.0f * speed;
 			} else if (playerController.moveRight.isDown) {
-				playerAcceleration.x = 1.0f;
+				acceleration.x = 1.0f * speed;
 			}
-			if (playerController.moveUp.isDown) {
-				playerAcceleration.y = 1.0f;
-			} else if (playerController.moveDown.isDown) {
-				playerAcceleration.y = -1.0f;
-			}
-			if (playerAcceleration.x != 0 || playerAcceleration.y != 0) {
-				playerAcceleration = Normalize(playerAcceleration);
-			}
-			playerAcceleration *= speed;
 
-			// Add gravity
-			playerAcceleration += gravity;
+			// Jump
+			constexpr f32 jumpPower = 100;
+			if (playerController.moveUp.WasPressed()) {
+				if (player.isGrounded) {
+					acceleration.y = 1.0f * jumpPower;
+				}
+			}
 
-			// Add drag
-			playerAcceleration += -player.velocity * 2.0f;
+			// Gravity
+			acceleration += gravity;
+
+			// Drag
+			acceleration += -player.velocity * 2.0f;
 
 			// Movement equation:
 			// p' = (a / 2) * dt^2 + v * dt + p
 			// v' = a * dt + v
-			Vec2f playerDelta = 0.5f * playerAcceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
-			player.velocity = playerAcceleration * input.deltaTime + player.velocity;
+			Vec2f playerDelta = 0.5f * acceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
+			player.velocity = acceleration * input.deltaTime + player.velocity;
 
+			// Dont assume we are grounded
+			player.isGrounded = false;
+
+			// Do line segment tests for each wall, find the side of the wall which is the nearest in time
+			// To enable colliding with multiple walls, we iterate it over a few times
 			for (u32 iteration = 0; iteration < 4; ++iteration) {
 				f32 tmin = 1.0f;
 				f32 tmax = 1.0f;
@@ -148,13 +161,13 @@ namespace finalspace {
 					Vec2f targetPosition = player.position + playerDelta;
 
 					for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
-						Wall &thisWall = walls[wallIndex];
+						Wall &wall = walls[wallIndex];
 
-						Vec2f minkowskiExt = Vec2f(player.ext.x + thisWall.ext.x, player.ext.y + thisWall.ext.y);
+						Vec2f minkowskiExt = Vec2f(player.ext.x + wall.ext.x, player.ext.y + wall.ext.y);
 						Vec2f minCorner = -minkowskiExt;
 						Vec2f maxCorner = minkowskiExt;
 
-						Vec2f rel = player.position - thisWall.position;
+						Vec2f rel = player.position - wall.position;
 
 						WallSide testSides[] =
 						{
@@ -164,13 +177,13 @@ namespace finalspace {
 							{ maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, Vec2f(0, 1) },
 						};
 
-						// @TODO: It works  but i would prefered a generic line segment intersection test here
+						// @TODO: It works but i would prefered a generic line segment intersection test here
 						Vec2f testSideNormal = Vec2f();
 						f32 hitTime = tmin;
 						bool wasHit = false;
 						for (u64 testSideIndex = 0; testSideIndex < ArrayCount(testSides); ++testSideIndex) {
 							WallSide *testSide = testSides + testSideIndex;
-							f32 tEpsilon = 0.001f;
+							constexpr f32 epsilon = 0.001f;
 							if (testSide->deltaX != 0.0f)
 							{
 								f32 f = (testSide->x - testSide->relX) / testSide->deltaX;
@@ -179,7 +192,7 @@ namespace finalspace {
 								{
 									if ((y >= testSide->minY) && (y <= testSide->maxY))
 									{
-										hitTime = Maximum(0.0f, f - tEpsilon);
+										hitTime = Maximum(0.0f, f - epsilon);
 										testSideNormal = testSide->normal;
 										wasHit = true;
 									}
@@ -191,7 +204,7 @@ namespace finalspace {
 						{
 							tmin = hitTime;
 							wallNormalMin = testSideNormal;
-							hitWallMin = &thisWall;
+							hitWallMin = &wall;
 						}
 					}
 
@@ -215,6 +228,9 @@ namespace finalspace {
 						playerDelta = targetPosition - player.position;
 						playerDelta += -(1 + restitution) * Dot(playerDelta, wallNormal) * wallNormal;
 						player.velocity += -(1 + restitution) * Dot(player.velocity, wallNormal) * wallNormal;
+
+						// Are we grounded?
+						player.isGrounded = (wallNormal.x == 0) && (wallNormal.y == 1);
 					}
 
 				}

@@ -19,6 +19,7 @@ namespace finalspace {
 			Vec2f position;
 			Vec2f velocity;
 			Vec2f ext;
+			b32 isGrounded;
 		};
 
 		struct Wall {
@@ -28,7 +29,7 @@ namespace finalspace {
 
 		struct Game {
 			Vec2f gravity;
-			Player player;
+			Player players[1];
 			std::vector<Wall> walls;
 
 			void Init();
