@@ -1,0 +1,49 @@
+Arcade Battle Arena Challenge!
+
+Make a game like the classics Bubble Bobble and Super Mario Bros 3 Battle Mode. Those games involve one or two players battling against waves of enemies on an arena.
+
+Game Requirements
+
+    The game must have:
+        Start screen
+        Key to return to the start screen
+        Score system
+        Minimum of 2 enemies with different behavior (AI)
+        Graphics at least for the UI, player and enemies
+        Sound effects at least for when the player is hurt and when an enemy is killed
+    The actual gameplay must happen on a single screen (no camera translation)
+
+Art Requirements
+
+    The game can be 2D or 3D
+    The art must use a maximum 16 colors palette
+    The art must be your own
+
+Tips
+
+    An interesting game design approach of the two games is that they require the player to neutralize the enemy first, before killing it:
+        In the Super Mario Bros 3 Battle Mode, to kill an enemy, the player must first hit underneath the platform where the enemy is walking on
+        In Bubble Bobble, to kill an enemy, the player must first shot a bubble on the enemy
+    You can quickly make sound effects on Chiptone
+    You can decrease your color count by replacing two similar colors with a median between the two colors. This works nicely for similar dark colors or similar light colors
+    Enemy behavior can involve:
+        Response to the environment. What is the kind of tile that the enemy is currently at? What are the kind of tiles that are in front or behind the enemy?
+        Response to the player. Where is the player? Is it too far away? Is it close? In front or behind? How the enemy will respond to that?
+        Motion pattern. Does the enemy walk on the platform and stop for some time? Does it fly? Games like Super Mario World are good examples with a great variety of enemy patterns.
+    The tutorials on Youtube by Shaun Spalding teach some enemy programming. They are for Game Maker, but the logic can be translated to other game engine or framework:
+        https://www.youtube.com/watch?v=wmnaOLI6RzE
+        https://www.youtube.com/watch?v=StO_Zf8nagI
+        https://www.youtube.com/watch?v=aNd_JotUOXE
+
+Duration
+
+4 weeks - October 6, 2017 to November 3, 2017
+
+Submission
+
+Post on this thread only your entries:
+
+    Link to the executable (specifying the platform)
+    Screenshots: if the screenshots are too big, post just a few, if they are small, you can post more, just don't take the entire space
+    A small post-mortem, in the same post of the entry, is encouraged, where you can share what went right, what went wrong, or just share a nifty trick
+    Source-code link is encouraged
