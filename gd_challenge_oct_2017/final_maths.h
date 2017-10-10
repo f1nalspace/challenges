@@ -2,7 +2,7 @@
 
 #include "final_types.h"
 
-#include <math.h>
+#include <cmath>
 
 namespace finalspace {
 	namespace maths {
@@ -69,6 +69,17 @@ namespace finalspace {
 			return(result);
 		}
 
+		template<typename T>
+		inline T Maximum(const T a, const T b) {
+			T result;
+			if (b > a) {
+				result = b;
+			} else {
+				result = a;
+			}
+			return(result);
+		}
+
 		inline Vec2f operator + (const Vec2f &a, const Vec2f &b) {
 			Vec2f result = Vec2f();
 			result.x = a.x + b.x;
@@ -97,10 +108,23 @@ namespace finalspace {
 			result.y = vec.y * scalar;
 			return(result);
 		}
+		inline Vec2f operator * (const Vec2f &vec, const f32 scalar) {
+			Vec2f result = scalar * vec;
+			return(result);
+		}
 		inline Vec2f &operator *= (Vec2f &left, const f32 right) {
 			left.x *= right;
 			left.y *= right;
 			return(left);
+		}
+		inline Vec2f operator - (const Vec2f &v) {
+			Vec2f result = Vec2f(-v.x, -v.y);
+			return(result);
+		}
+
+		inline f32 Dot(const Vec2f &a, const Vec2f &b) {
+			f32 result = a.x * b.x + a.y * b.y;
+			return(result);
 		}
 
 		inline f32 GetLength(const Vec2f &vec) {

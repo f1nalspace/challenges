@@ -1,9 +1,5 @@
-#define GLEW_STATIC
-#include <GL\glew.h>
-#include <GL/wglew.h>
-
 #define FPL_IMPLEMENTATION
-#include "final_platform_layer.hpp"
+#include <final_platform_layer.hpp>
 
 using namespace fpl;
 using namespace fpl::window;
@@ -33,13 +29,6 @@ static void ProcessKeyboardButton(const b32 isDown, ButtonState &targetButton) {
 
 int main(int argc, char **args) {
 	if (InitPlatform(InitFlags::VideoOpenGL)) {
-		GLenum glewInitResult = glewInit();
-		if (glewInitResult != GLEW_NO_ERROR) {
-			// @TODO: Log error
-		}
-
-		wglSwapIntervalEXT(1);
-
 		SetWindowResizeable(true);
 		SetWindowArea(1280, 720);
 
