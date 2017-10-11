@@ -35,37 +35,44 @@ namespace finalspace {
 		void Game::Init() {
 			glClearColor(0.2f, 0.3f, 0.8f, 1.0f);
 
-			gravity = Vec2f(0, -10);
+			gravity = { 0, -4 };
 
-			Player &player = players[0];
+			// Single player for now
+			Entity player = Entity();
 			player.position = Vec2f();
-			player.ext = Vec2f(0.5f, 0.5f);
+			player.ext = { 0.5f, 0.5f };
+			player.horizontalSpeed = 20.0f;
+			player.horizontalDrag = 13.0f;
+			player.canJump = true;
+			player.jumpPower = 160.0f;
+			players.emplace_back(player);
 
+			// Fixed level for now
 			float wallDepth = 0.5f;
 
 			Wall wall = Wall();
 			wall.position.y = -HalfGameHeight + wallDepth * 0.5f;
-			wall.ext = Vec2f(HalfGameWidth, wallDepth * 0.5f);
+			wall.ext = { HalfGameWidth, wallDepth * 0.5f };
 			walls.emplace_back(wall);
 
 			wall = Wall();
 			wall.position.y = HalfGameHeight - wallDepth * 0.5f;
-			wall.ext = Vec2f(HalfGameWidth, wallDepth * 0.5f);
+			wall.ext = { HalfGameWidth, wallDepth * 0.5f };
 			walls.emplace_back(wall);
 
 			wall = Wall();
 			wall.position.x = -HalfGameWidth + wallDepth * 0.5f;
-			wall.ext = Vec2f(wallDepth * 0.5f, HalfGameHeight - (wallDepth));
+			wall.ext = { wallDepth * 0.5f, HalfGameHeight - (wallDepth) };
 			walls.emplace_back(wall);
 
 			wall = Wall();
 			wall.position.x = HalfGameWidth - wallDepth * 0.5f;
-			wall.ext = Vec2f(wallDepth * 0.5f, HalfGameHeight - (wallDepth));
+			wall.ext = { wallDepth * 0.5f, HalfGameHeight - (wallDepth) };
 			walls.emplace_back(wall);
 
 			wall = Wall();
 			wall.position.y = -2.5f;
-			wall.ext = Vec2f(4.0f, wallDepth * 0.5f);
+			wall.ext = { 4.0f, wallDepth * 0.5f };
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 		}
@@ -83,19 +90,6 @@ namespace finalspace {
 
 			glClear(GL_COLOR_BUFFER_BIT);
 
-			// Draw player
-			const Player &player = players[0];
-			glColor3f(1.0f, 1.0f, 1.0f);
-			glPushMatrix();
-			glTranslatef(player.position.x, player.position.y, 0.0f);
-			glBegin(GL_QUADS);
-			glVertex2f(0.5f, 0.5f);
-			glVertex2f(-0.5f, 0.5f);
-			glVertex2f(-0.5f, -0.5f);
-			glVertex2f(0.5f, -0.5f);
-			glEnd();
-			glPopMatrix();
-
 			// Draw walls
 			for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
 				const Wall &wall = walls[wallIndex];
@@ -110,31 +104,45 @@ namespace finalspace {
 				glEnd();
 				glPopMatrix();
 			}
+
+			// Draw players
+			for (u32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
+				const Entity &player = players[playerIndex];
+				glColor3f(1.0f, 1.0f, 1.0f);
+				glPushMatrix();
+				glTranslatef(player.position.x, player.position.y, 0.0f);
+				glBegin(GL_QUADS);
+				glVertex2f(0.5f, 0.5f);
+				glVertex2f(-0.5f, 0.5f);
+				glVertex2f(-0.5f, -0.5f);
+				glVertex2f(0.5f, -0.5f);
+				glEnd();
+				glPopMatrix();
+			}
 		}
 
 		void Game::Update(const Input &input) {
-			const Controller &playerController = input.controller[input.playerOneControllerIndex];
+			const Controller &playerController = input.controllers[input.playerOneControllerIndex];
 
-			Player &player = players[playerController.playerIndex];
+			const Vec2f up = { 0, 1 };
+			const Vec2f right = { 1, 0 };
+
+			Entity &player = players[playerController.playerIndex];
 			b32 wasGrounded = player.isGrounded;
 			player.isGrounded = false;
 
 			// Set acceleration based on player input
-			Vec2f acceleration = Vec2f();
-			
-			// @TODO: Is this constant all the time?
-			constexpr f32 horizontalSpeed = 30.0f;		
-			if (playerController.moveLeft.isDown) {
-				acceleration.x = -1.0f * horizontalSpeed;
-			} else if (playerController.moveRight.isDown) {
-				acceleration.x = 1.0f * horizontalSpeed;
+			Vec2f acceleration = {};
+			if (playerController.actionLeft.isDown) {
+				acceleration.x = -1.0f * player.horizontalSpeed;
+			} else if (playerController.actionRight.isDown) {
+				acceleration.x = 1.0f * player.horizontalSpeed;
 			}
 
 			// Jump
-			constexpr f32 jumpPower = 250;
-			if (playerController.moveUp.isDown) {
+			if (playerController.actionUp.isDown && player.canJump) {
 				if (wasGrounded) {
-					acceleration.y = 1.0f * jumpPower;
+					acceleration.y = 1.0f * player.jumpPower;
 				}
 			}
 
@@ -142,8 +150,7 @@ namespace finalspace {
 			acceleration += gravity;
 
 			// Horizontal drag
-			Vec2f horizontal = Vec2f(1, 0);
-			acceleration += -Dot(horizontal, player.velocity) * horizontal * 10.0f;
+			acceleration += -Dot(right, player.velocity) * right * player.horizontalDrag;
 
 			// Movement equation:
 			// p' = (a / 2) * dt^2 + v * dt + p
@@ -160,7 +167,7 @@ namespace finalspace {
 				f32 tmin = 1.0f;
 				f32 tmax = 1.0f;
 
-				f32 playerDeltaLen = GetLength(playerDelta);
+				f32 playerDeltaLen = Length(playerDelta);
 				if (playerDeltaLen > 0.0f) {
 
 					Vec2f wallNormalMin = Vec2f();
@@ -171,25 +178,30 @@ namespace finalspace {
 					for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
 						Wall &wall = walls[wallIndex];
 
-						Vec2f minkowskiExt = Vec2f(player.ext.x + wall.ext.x, player.ext.y + wall.ext.y);
+						Vec2f minkowskiExt = { player.ext.x + wall.ext.x, player.ext.y + wall.ext.y };
 						Vec2f minCorner = -minkowskiExt;
 						Vec2f maxCorner = minkowskiExt;
 
 						Vec2f rel = player.position - wall.position;
 
-						WallSide testSides[] =
+						WallSide testSides[4] =
 						{
-							{ minCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, Vec2f(-1, 0) },
-							{ maxCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, Vec2f(1, 0) },
-							{ maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, Vec2f(0, 1) },
-							{ minCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, Vec2f(0, -1) },
+							{ minCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, { -1, 0 } },
+							{ maxCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, { 1, 0 } },
+							{ minCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, -1 } },
+							{ maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, 1 } },
 						};
+						u32 wallSideCount = 4;
+						if (wall.isPlatform) {
+							wallSideCount = 1;
+							testSides[0] = { maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, 1 } };
+						}
 
 						// @TODO: It works but i would prefered a generic line segment intersection test here
 						Vec2f testSideNormal = Vec2f();
 						f32 hitTime = tmin;
 						bool wasHit = false;
-						for (u64 testSideIndex = 0; testSideIndex < ArrayCount(testSides); ++testSideIndex) {
+						for (u64 testSideIndex = 0; testSideIndex < wallSideCount; ++testSideIndex) {
 							WallSide *testSide = testSides + testSideIndex;
 							constexpr f32 epsilon = 0.001f;
 							if (testSide->deltaX != 0.0f)
@@ -210,9 +222,12 @@ namespace finalspace {
 
 						if (wasHit)
 						{
-							tmin = hitTime;
-							wallNormalMin = testSideNormal;
-							hitWallMin = &wall;
+							f32 d = Dot(playerDelta, up);
+							if ((!wall.isPlatform) || (wall.isPlatform && (d <= 0))) {
+								tmin = hitTime;
+								wallNormalMin = testSideNormal;
+								hitWallMin = &wall;
+							}
 						}
 					}
 

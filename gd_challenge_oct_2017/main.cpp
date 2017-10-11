@@ -44,7 +44,7 @@ int main(int argc, char **args) {
 		uint32_t frameCount = 0;
 		uint32_t updateCount = 0;
 
-		Input inputs[2] = {};
+		Input inputs[2] = { };
 		Input *currentInput = &inputs[0];
 		Input *prevInput = &inputs[1];
 
@@ -98,19 +98,19 @@ int main(int argc, char **args) {
 									switch (event.keyboard.mappedKey) {
 										case Key::Key_A:
 										case Key::Key_Left:
-											ProcessKeyboardButton(isDown, currentKeyboardController->moveLeft);
+											ProcessKeyboardButton(isDown, currentKeyboardController->actionLeft);
 											break;
 										case Key::Key_D:
 										case Key::Key_Right:
-											ProcessKeyboardButton(isDown, currentKeyboardController->moveRight);
+											ProcessKeyboardButton(isDown, currentKeyboardController->actionRight);
 											break;
 										case Key::Key_W:
 										case Key::Key_Up:
-											ProcessKeyboardButton(isDown, currentKeyboardController->moveUp);
+											ProcessKeyboardButton(isDown, currentKeyboardController->actionUp);
 											break;
 										case Key::Key_S:
 										case Key::Key_Down:
-											ProcessKeyboardButton(isDown, currentKeyboardController->moveDown);
+											ProcessKeyboardButton(isDown, currentKeyboardController->actionDown);
 											break;
 									}
 								} break;

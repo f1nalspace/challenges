@@ -45,6 +45,7 @@ namespace finalspace {
 			};
 			f32 elements[2];
 
+#if 0
 			inline Vec2f() {
 				x = y = 0;
 			}
@@ -59,7 +60,23 @@ namespace finalspace {
 				x = from.x;
 				y = from.y;
 			}
+#endif
+
+			// @TODO: I really want predefined constant vectors here
+#if 0
+			static const Vec2f Up;
+			static const Vec2f Down;
+			static const Vec2f Left;
+			static const Vec2f Right;
+#endif
 		};
+
+#if 0	
+		const Vec2f Vec2f::Up = Vec2f(0, 1);
+		const Vec2f Vec2f::Down = Vec2f(0, -1);
+		const Vec2f Vec2f::Left = Vec2f(-1, 0);
+		const Vec2f Vec2f::Right = Vec2f(1, 0);
+#endif
 
 		template<typename T>
 		inline T Clamp(const T value, const T min, const T max) {
@@ -73,6 +90,17 @@ namespace finalspace {
 		inline T Maximum(const T a, const T b) {
 			T result;
 			if (b > a) {
+				result = b;
+			} else {
+				result = a;
+			}
+			return(result);
+		}
+
+		template<typename T>
+		inline T Minimum(const T a, const T b) {
+			T result;
+			if (b < a) {
 				result = b;
 			} else {
 				result = a;
@@ -118,7 +146,7 @@ namespace finalspace {
 			return(left);
 		}
 		inline Vec2f operator - (const Vec2f &v) {
-			Vec2f result = Vec2f(-v.x, -v.y);
+			Vec2f result = { -v.x, -v.y };
 			return(result);
 		}
 
@@ -127,13 +155,13 @@ namespace finalspace {
 			return(result);
 		}
 
-		inline f32 GetLength(const Vec2f &vec) {
+		inline f32 Length(const Vec2f &vec) {
 			f32 result = (f32)sqrtf(vec.x * vec.x + vec.y * vec.y);
 			return(result);
 		}
 
 		inline Vec2f Normalize(const Vec2f &vec) {
-			f32 len = GetLength(vec);
+			f32 len = Length(vec);
 			f32 invLen = len != 0.0f ? 1.0f / len : 1.0f;
 			Vec2f result = invLen * vec;
 			return(result);

@@ -15,11 +15,15 @@ namespace finalspace {
 
 	namespace games {
 
-		struct Player {
+		struct Entity {
 			Vec2f position;
 			Vec2f velocity;
 			Vec2f ext;
 			b32 isGrounded;
+			f32 horizontalSpeed;
+			f32 horizontalDrag;
+			b32 canJump;
+			f32 jumpPower;
 		};
 
 		struct Wall {
@@ -30,7 +34,7 @@ namespace finalspace {
 
 		struct Game {
 			Vec2f gravity;
-			Player players[1];
+			std::vector<Entity> players;
 			std::vector<Wall> walls;
 
 			void Init();

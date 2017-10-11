@@ -1,6 +1,11 @@
 #pragma once
 
 #include "final_types.h"
+#include "final_maths.h"
+#include "final_utils.h"
+
+using namespace finalspace::maths;
+using namespace finalspace::utils;
 
 namespace finalspace {
 
@@ -18,12 +23,13 @@ namespace finalspace {
 
 		struct Controller {
 			u32 playerIndex;
+			Vec2f movement;
 			union {
 				struct {
-					ButtonState moveUp;
-					ButtonState moveDown;
-					ButtonState moveLeft;
-					ButtonState moveRight;
+					ButtonState actionUp;
+					ButtonState actionDown;
+					ButtonState actionLeft;
+					ButtonState actionRight;
 				};
 				ButtonState buttons[4];
 			};
@@ -31,13 +37,13 @@ namespace finalspace {
 
 		struct Input {
 			f32 deltaTime;
+			u32 playerOneControllerIndex;
 			union {
 				struct {
 					Controller keyboard;
 				};
-				Controller controller[1];
+				Controller controllers[1];
 			};
-			u32 playerOneControllerIndex;
 		};
 
 	};
