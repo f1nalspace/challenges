@@ -44,7 +44,7 @@ int main(int argc, char **args) {
 		uint32_t frameCount = 0;
 		uint32_t updateCount = 0;
 
-		Input inputs[2] = { };
+		Input inputs[2] = {};
 		Input *currentInput = &inputs[0];
 		Input *prevInput = &inputs[1];
 

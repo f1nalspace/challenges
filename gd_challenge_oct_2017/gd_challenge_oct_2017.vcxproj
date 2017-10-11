@@ -160,6 +160,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="final_maths.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

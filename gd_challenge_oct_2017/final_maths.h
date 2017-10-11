@@ -62,21 +62,12 @@ namespace finalspace {
 			}
 #endif
 
-			// @TODO: I really want predefined constant vectors here
-#if 0
+			// @NOTE: Static initialization is done in the source file
 			static const Vec2f Up;
 			static const Vec2f Down;
 			static const Vec2f Left;
 			static const Vec2f Right;
-#endif
 		};
-
-#if 0	
-		const Vec2f Vec2f::Up = Vec2f(0, 1);
-		const Vec2f Vec2f::Down = Vec2f(0, -1);
-		const Vec2f Vec2f::Left = Vec2f(-1, 0);
-		const Vec2f Vec2f::Right = Vec2f(1, 0);
-#endif
 
 		template<typename T>
 		inline T Clamp(const T value, const T min, const T max) {
