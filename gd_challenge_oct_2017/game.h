@@ -15,10 +15,15 @@ namespace finalspace {
 
 	namespace games {
 
+		enum class EntityType {
+			Player,
+		};
+
 		struct Entity {
 			Vec2f position;
 			Vec2f velocity;
 			Vec2f ext;
+			EntityType type;
 			b32 isGrounded;
 			f32 horizontalSpeed;
 			f32 horizontalDrag;
@@ -37,7 +42,10 @@ namespace finalspace {
 			std::vector<Entity> players;
 			std::vector<Wall> walls;
 
+			void *textureHandle;
+
 			void Init();
+			void Release();
 			void Update(const Input &input);
 			void Render(RenderState &render);
 		};

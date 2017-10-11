@@ -15,6 +15,15 @@
     <ClInclude Include="final_utils.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="final_render.h" />
+    <ClInclude Include="dependencies\include\stb_easy_font.h">
+      <Filter>dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\include\stb_image.h">
+      <Filter>dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\include\stb_truetype.h">
+      <Filter>dependencies</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dependencies">

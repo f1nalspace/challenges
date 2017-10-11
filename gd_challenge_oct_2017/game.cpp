@@ -1,7 +1,10 @@
 #include "game.h"
 
-#define FPL_ENABLE_WINDOW 1
 #include <final_platform_layer.hpp>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "final_utils.h"
 
 using namespace finalspace::renderer;
@@ -32,8 +35,51 @@ namespace finalspace {
 			Vec2f normal;
 		};
 
+		static void *AllocateTexture(const u32 width, const u32 height, void *data) {
+			GLuint handle;
+			glGenTextures(1, &handle);
+			glBindTexture(GL_TEXTURE_2D, handle);
+			glTexImage2D(GL_TEXTURE_2D, 0,
+						 GL_RGBA8,
+						 width, height, 0,
+						 GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			assert(sizeof(handle) <= sizeof(void *));
+			void *result = ValueToPointer(handle);
+			return(result);
+		}
+
+		void Game::Release() {
+			GLuint texture = PointerToValue<GLuint>(textureHandle);
+			if (texture) {
+				glDeleteTextures(1, &texture);
+				textureHandle = nullptr;
+			}
+		}
+
 		void Game::Init() {
 			fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
+
+			constexpr char *imageFilePath = "brickwall.png";
+			u32 imageFileSize = fpl::files::GetFileSize32(imageFilePath);
+			u8 *imageFileData = new u8[imageFileSize];
+			auto imageFileHandle = fpl::files::OpenBinaryFile(imageFilePath);
+			if (imageFileHandle.isValid) {
+				fpl::files::ReadFileBlock32(&imageFileHandle, imageFileSize, imageFileData, imageFileSize);
+				fpl::files::CloseFile2(&imageFileHandle);
+			}
+			int imageWidth, imageHeight, imageComponents;
+			auto imageData = stbi_load_from_memory(imageFileData, imageFileSize, &imageWidth, &imageHeight, &imageComponents, 4);
+			textureHandle = AllocateTexture(imageWidth, imageHeight, imageData);
+			stbi_image_free(imageData);
+			delete[] imageFileData;
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -180,20 +226,36 @@ namespace finalspace {
 				glPushMatrix();
 				glTranslatef(player.position.x, player.position.y, 0.0f);
 				glBegin(GL_QUADS);
-				glVertex2f(0.5f, 0.5f);
-				glVertex2f(-0.5f, 0.5f);
-				glVertex2f(-0.5f, -0.5f);
-				glVertex2f(0.5f, -0.5f);
+				glVertex2f(player.ext.w, player.ext.h);
+				glVertex2f(-player.ext.w, player.ext.h);
+				glVertex2f(-player.ext.w, -player.ext.h);
+				glVertex2f(player.ext.w, -player.ext.h);
 				glEnd();
 				glPopMatrix();
 			}
+
+			GLuint texHandle = PointerToValue<GLuint>(textureHandle);
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, texHandle);
+
+			f32 tw = 4.0f;
+			f32 th = 4.0f;
+			glPushMatrix();
+			glColor3f(1.0f, 1.0f, 1.0f);
+			glBegin(GL_QUADS);
+			glTexCoord2f(1.0f, 1.0f); glVertex2f(tw, th);
+			glTexCoord2f(0.0f, 1.0f); glVertex2f(-tw, th);
+			glTexCoord2f(0.0f, 0.0f); glVertex2f(-tw, -th);
+			glTexCoord2f(1.0f, 0.0f); glVertex2f(tw, -th);
+			glEnd();
+			glPopMatrix();
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glDisable(GL_TEXTURE_2D);
 		}
 
 		void Game::Update(const Input &input) {
 			const Controller &playerController = input.controllers[input.playerOneControllerIndex];
-
-			const Vec2f up = { 0, 1 };
-			const Vec2f right = { 1, 0 };
 
 			Entity &player = players[playerController.playerIndex];
 			b32 wasGrounded = player.isGrounded;
@@ -218,7 +280,7 @@ namespace finalspace {
 			acceleration += gravity;
 
 			// Horizontal drag
-			acceleration += -Dot(right, player.velocity) * right * player.horizontalDrag;
+			acceleration += -Dot(Vec2f::Right, player.velocity) * Vec2f::Right * player.horizontalDrag;
 
 			// Movement equation:
 			// p' = (a / 2) * dt^2 + v * dt + p
@@ -290,8 +352,8 @@ namespace finalspace {
 
 						if (wasHit)
 						{
-							f32 d = Dot(playerDelta, up);
-							if ((!wall.isPlatform) || (wall.isPlatform && (d <= 0))) {
+							// One sided platform or solid block
+							if ((!wall.isPlatform) || (wall.isPlatform && (Dot(playerDelta, Vec2f::Up) <= 0))) {
 								tmin = hitTime;
 								wallNormalMin = testSideNormal;
 								hitWallMin = &wall;

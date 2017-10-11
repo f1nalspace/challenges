@@ -162,6 +162,7 @@ int main(int argc, char **args) {
 			Swap(currentInput, prevInput);
 		}
 
+		game->Release();
 		delete game;
 
 		ReleasePlatform();

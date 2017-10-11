@@ -166,6 +166,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dependencies\include\final_platform_layer.hpp" />
+    <ClInclude Include="dependencies\include\stb_easy_font.h" />
+    <ClInclude Include="dependencies\include\stb_image.h" />
+    <ClInclude Include="dependencies\include\stb_truetype.h" />
     <ClInclude Include="final_input.h" />
     <ClInclude Include="final_maths.h" />
     <ClInclude Include="final_render.h" />
