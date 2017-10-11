@@ -33,7 +33,9 @@ namespace finalspace {
 		};
 
 		void Game::Init() {
-			glClearColor(0.2f, 0.3f, 0.8f, 1.0f);
+			fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
+
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 			gravity = { 0, -4 };
 
@@ -44,13 +46,17 @@ namespace finalspace {
 			player.horizontalSpeed = 20.0f;
 			player.horizontalDrag = 13.0f;
 			player.canJump = true;
-			player.jumpPower = 160.0f;
+			player.jumpPower = 140.0f;
 			players.emplace_back(player);
 
 			// Fixed level for now
 			float wallDepth = 0.5f;
 
-			Wall wall = Wall();
+			
+			Wall wall;
+
+			// Solid side walls
+			wall = Wall();
 			wall.position.y = -HalfGameHeight + wallDepth * 0.5f;
 			wall.ext = { HalfGameWidth, wallDepth * 0.5f };
 			walls.emplace_back(wall);
@@ -70,9 +76,77 @@ namespace finalspace {
 			wall.ext = { wallDepth * 0.5f, HalfGameHeight - (wallDepth) };
 			walls.emplace_back(wall);
 
+			// Small solid tiles
 			wall = Wall();
-			wall.position.y = -2.5f;
+			wall.position.x = -HalfGameWidth + 2.0f;
+			wall.position.y = -3.25f;
+			wall.ext = { wallDepth * 0.5f, wallDepth * 0.5f };
+			walls.emplace_back(wall);
+
+			wall = Wall();
+			wall.position.x = HalfGameWidth - 2.0f;
+			wall.position.y = -3.25f;
+			wall.ext = { wallDepth * 0.5f, wallDepth * 0.5f };
+			walls.emplace_back(wall);
+
+			wall = Wall();
+			wall.position.x = 2.0f;
+			wall.position.y = 3.25f;
+			wall.ext = { wallDepth * 0.5f, wallDepth * 0.5f };
+			walls.emplace_back(wall);
+
+			wall = Wall();
+			wall.position.x = -2.0f;
+			wall.position.y = 3.25f;
+			wall.ext = { wallDepth * 0.5f, wallDepth * 0.5f };
+			walls.emplace_back(wall);
+
+			// Center platforms
+			wall = Wall();
+			wall.position.y = -3.0f;
 			wall.ext = { 4.0f, wallDepth * 0.5f };
+			wall.isPlatform = true;
+			walls.emplace_back(wall);
+
+			wall = Wall();
+			wall.position.y = 1.25f;
+			wall.ext = { 4.0f, wallDepth * 0.5f };
+			wall.isPlatform = true;
+			walls.emplace_back(wall);
+
+			// Side platforms
+			wall = Wall();
+			wall.ext = { 1.5f, wallDepth * 0.5f };
+			wall.position.x = -HalfGameWidth + wall.ext.w + wallDepth;
+			wall.position.y = -1.0f;
+			wall.isPlatform = true;
+			walls.emplace_back(wall);
+
+			wall = Wall();
+			wall.ext = { 1.5f, wallDepth * 0.5f };
+			wall.position.x = HalfGameWidth - wall.ext.w - wallDepth;
+			wall.position.y = -1.0f;
+			wall.isPlatform = true;
+			walls.emplace_back(wall);
+
+			wall = Wall();
+			wall.ext = { 1.0f, wallDepth * 0.5f };
+			wall.position.x = 0.0f;
+			wall.position.y = -1.0f;
+			wall.isPlatform = true;
+			walls.emplace_back(wall);
+
+			wall = Wall();
+			wall.ext = { 1.0f, wallDepth * 0.5f };
+			wall.position.x = -HalfGameWidth + wall.ext.w + wallDepth;
+			wall.position.y = 3.0f;
+			wall.isPlatform = true;
+			walls.emplace_back(wall);
+
+			wall = Wall();
+			wall.ext = { 1.0f, wallDepth * 0.5f };
+			wall.position.x = HalfGameWidth - wall.ext.w - wallDepth;
+			wall.position.y = 3.0f;
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 		}
@@ -93,7 +167,10 @@ namespace finalspace {
 			// Draw walls
 			for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
 				const Wall &wall = walls[wallIndex];
-				glColor3f(0.0f, 0.0f, 1.0f);
+				if (wall.isPlatform)
+					glColor3f(0.0f, 0.0f, 0.75f);
+				else
+					glColor3f(0.0f, 0.0f, 1.0f);
 				glPushMatrix();
 				glTranslatef(wall.position.x, wall.position.y, 0.0f);
 				glBegin(GL_QUADS);
