@@ -45,7 +45,6 @@ namespace finalspace {
 			};
 			f32 elements[2];
 
-#if 0
 			inline Vec2f() {
 				x = y = 0;
 			}
@@ -60,7 +59,6 @@ namespace finalspace {
 				x = from.x;
 				y = from.y;
 			}
-#endif
 
 			// @NOTE: Static initialization is done in the source file
 			static const Vec2f Up;

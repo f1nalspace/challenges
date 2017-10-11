@@ -37,12 +37,12 @@ namespace finalspace {
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-			gravity = { 0, -4 };
+			gravity = Vec2f(0, -4);
 
 			// Single player for now
 			Entity player = Entity();
 			player.position = Vec2f();
-			player.ext = { 0.5f, 0.5f };
+			player.ext = Vec2f(0.5f, 0.5f);
 			player.horizontalSpeed = 20.0f;
 			player.horizontalDrag = 13.0f;
 			player.canJump = true;
@@ -52,101 +52,92 @@ namespace finalspace {
 			// Fixed level for now
 			float wallDepth = 0.5f;
 
-			
+
 			Wall wall;
 
 			// Solid side walls
 			wall = Wall();
-			wall.position.y = -HalfGameHeight + wallDepth * 0.5f;
-			wall.ext = { HalfGameWidth, wallDepth * 0.5f };
+			wall.position = Vec2f(0, -HalfGameHeight + wallDepth * 0.5f);
+			wall.ext = Vec2f(HalfGameWidth, wallDepth * 0.5f);
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.position.y = HalfGameHeight - wallDepth * 0.5f;
-			wall.ext = { HalfGameWidth, wallDepth * 0.5f };
+			wall.position = Vec2f(0, HalfGameHeight - wallDepth * 0.5f);
+			wall.ext = Vec2f(HalfGameWidth, wallDepth * 0.5f);
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.position.x = -HalfGameWidth + wallDepth * 0.5f;
-			wall.ext = { wallDepth * 0.5f, HalfGameHeight - (wallDepth) };
+			wall.position = Vec2f(-HalfGameWidth + wallDepth * 0.5f, 0);
+			wall.ext = Vec2f(wallDepth * 0.5f, HalfGameHeight - (wallDepth));
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.position.x = HalfGameWidth - wallDepth * 0.5f;
-			wall.ext = { wallDepth * 0.5f, HalfGameHeight - (wallDepth) };
+			wall.position = Vec2f(HalfGameWidth - wallDepth * 0.5f, 0);
+			wall.ext = Vec2f(wallDepth * 0.5f, HalfGameHeight - (wallDepth));
 			walls.emplace_back(wall);
 
 			// Small solid tiles
 			wall = Wall();
-			wall.position.x = -HalfGameWidth + 2.0f;
-			wall.position.y = -3.25f;
-			wall.ext = { wallDepth * 0.5f, wallDepth * 0.5f };
+			wall.position = Vec2f(-HalfGameWidth + 2.0f, -3.25f);
+			wall.ext = Vec2f(wallDepth * 0.5f, wallDepth * 0.5f);
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.position.x = HalfGameWidth - 2.0f;
-			wall.position.y = -3.25f;
-			wall.ext = { wallDepth * 0.5f, wallDepth * 0.5f };
+			wall.position = Vec2f(HalfGameWidth - 2.0f, -3.25f);
+			wall.ext = Vec2f(wallDepth * 0.5f, wallDepth * 0.5f);
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.position.x = 2.0f;
-			wall.position.y = 3.25f;
-			wall.ext = { wallDepth * 0.5f, wallDepth * 0.5f };
+			wall.position = Vec2f(2.0f, 3.25f);
+			wall.ext = Vec2f(wallDepth * 0.5f, wallDepth * 0.5f);
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.position.x = -2.0f;
-			wall.position.y = 3.25f;
-			wall.ext = { wallDepth * 0.5f, wallDepth * 0.5f };
+			wall.position = Vec2f(-2.0f, 3.25f);
+			wall.ext = Vec2f(wallDepth * 0.5f, wallDepth * 0.5f);
 			walls.emplace_back(wall);
 
 			// Center platforms
 			wall = Wall();
-			wall.position.y = -3.0f;
-			wall.ext = { 4.0f, wallDepth * 0.5f };
+			wall.position = Vec2f(0, -3.0f);
+			wall.ext = Vec2f(4.0f, wallDepth * 0.5f);
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.position.y = 1.25f;
-			wall.ext = { 4.0f, wallDepth * 0.5f };
+			wall.position = Vec2f(0, 1.25f);
+			wall.ext = Vec2f(4.0f, wallDepth * 0.5f);
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 
 			// Side platforms
 			wall = Wall();
-			wall.ext = { 1.5f, wallDepth * 0.5f };
-			wall.position.x = -HalfGameWidth + wall.ext.w + wallDepth;
-			wall.position.y = -1.0f;
+			wall.ext = Vec2f(1.5f, wallDepth * 0.5f);
+			wall.position = Vec2f(-HalfGameWidth + wall.ext.w + wallDepth, -1.0f);
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.ext = { 1.5f, wallDepth * 0.5f };
-			wall.position.x = HalfGameWidth - wall.ext.w - wallDepth;
-			wall.position.y = -1.0f;
+			wall.ext = Vec2f(1.5f, wallDepth * 0.5f);
+			wall.position = Vec2f(HalfGameWidth - wall.ext.w - wallDepth, -1.0f);
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.ext = { 1.0f, wallDepth * 0.5f };
-			wall.position.x = 0.0f;
-			wall.position.y = -1.0f;
+			wall.ext = Vec2f(1.0f, wallDepth * 0.5f);
+			wall.position = Vec2f(0.0f, -1.0f);
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.ext = { 1.0f, wallDepth * 0.5f };
-			wall.position.x = -HalfGameWidth + wall.ext.w + wallDepth;
-			wall.position.y = 3.0f;
+			wall.ext = Vec2f(1.0f, wallDepth * 0.5f);
+			wall.position = Vec2f(-HalfGameWidth + wall.ext.w + wallDepth, 3.0f);
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.ext = { 1.0f, wallDepth * 0.5f };
-			wall.position.x = HalfGameWidth - wall.ext.w - wallDepth;
-			wall.position.y = 3.0f;
+			wall.ext = Vec2f(1.0f, wallDepth * 0.5f);
+			wall.position = Vec2f(HalfGameWidth - wall.ext.w - wallDepth, 3.0f);
 			wall.isPlatform = true;
 			walls.emplace_back(wall);
 		}

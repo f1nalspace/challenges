@@ -19,6 +19,11 @@ namespace finalspace {
 				bool result = ((halfTransitionCount > 1) || ((halfTransitionCount == 1) && (isDown)));
 				return(result);
 			}
+
+			ButtonState() :
+				isDown(false),
+				halfTransitionCount(0) {
+			}
 		};
 
 		struct Controller {
@@ -33,6 +38,13 @@ namespace finalspace {
 				};
 				ButtonState buttons[4];
 			};
+
+			Controller() :
+				playerIndex(0),
+				movement() {
+				for (auto &button : buttons)
+					button = ButtonState();
+			}
 		};
 
 		struct Input {
@@ -44,6 +56,13 @@ namespace finalspace {
 				};
 				Controller controllers[1];
 			};
+
+			Input() :
+				deltaTime(0),
+				playerOneControllerIndex(0) {
+				for (auto &controller : controllers)
+					controller = Controller();
+			}
 		};
 
 	};
