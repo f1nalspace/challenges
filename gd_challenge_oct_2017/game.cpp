@@ -1,5 +1,6 @@
 #include "game.h"
 
+#define FPL_ENABLE_WINDOW 1
 #include <final_platform_layer.hpp>
 #include "final_utils.h"
 
@@ -18,12 +19,16 @@ namespace finalspace {
 		struct WallSide
 		{
 			f32 x;
+			// NOTE: Relative position in minkowski space
 			f32 relX;
 			f32 relY;
+			// NOTE: Delta movement
 			f32 deltaX;
 			f32 deltaY;
+			// NOTE: Min/Max corners
 			f32 minY;
 			f32 maxY;
+			// NOTE: Surface normal
 			Vec2f normal;
 		};
 
@@ -59,8 +64,9 @@ namespace finalspace {
 			walls.emplace_back(wall);
 
 			wall = Wall();
-			wall.position.y = -2.0f;
+			wall.position.y = -2.5f;
 			wall.ext = Vec2f(4.0f, wallDepth * 0.5f);
+			wall.isPlatform = true;
 			walls.emplace_back(wall);
 		}
 
@@ -110,23 +116,24 @@ namespace finalspace {
 			const Controller &playerController = input.controller[input.playerOneControllerIndex];
 
 			Player &player = players[playerController.playerIndex];
+			b32 wasGrounded = player.isGrounded;
+			player.isGrounded = false;
 
 			// Set acceleration based on player input
 			Vec2f acceleration = Vec2f();
 			
 			// @TODO: Is this constant all the time?
-			f32 speed = 20.0f;
-			
+			constexpr f32 horizontalSpeed = 30.0f;		
 			if (playerController.moveLeft.isDown) {
-				acceleration.x = -1.0f * speed;
+				acceleration.x = -1.0f * horizontalSpeed;
 			} else if (playerController.moveRight.isDown) {
-				acceleration.x = 1.0f * speed;
+				acceleration.x = 1.0f * horizontalSpeed;
 			}
 
 			// Jump
-			constexpr f32 jumpPower = 100;
-			if (playerController.moveUp.WasPressed()) {
-				if (player.isGrounded) {
+			constexpr f32 jumpPower = 250;
+			if (playerController.moveUp.isDown) {
+				if (wasGrounded) {
 					acceleration.y = 1.0f * jumpPower;
 				}
 			}
@@ -134,8 +141,9 @@ namespace finalspace {
 			// Gravity
 			acceleration += gravity;
 
-			// Drag
-			acceleration += -player.velocity * 2.0f;
+			// Horizontal drag
+			Vec2f horizontal = Vec2f(1, 0);
+			acceleration += -Dot(horizontal, player.velocity) * horizontal * 10.0f;
 
 			// Movement equation:
 			// p' = (a / 2) * dt^2 + v * dt + p
@@ -173,8 +181,8 @@ namespace finalspace {
 						{
 							{ minCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, Vec2f(-1, 0) },
 							{ maxCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, Vec2f(1, 0) },
-							{ minCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, Vec2f(0, -1) },
 							{ maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, Vec2f(0, 1) },
+							{ minCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, Vec2f(0, -1) },
 						};
 
 						// @TODO: It works but i would prefered a generic line segment intersection test here

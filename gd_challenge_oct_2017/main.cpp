@@ -51,6 +51,7 @@ int main(int argc, char **args) {
 		RenderState renderState = {};
 
 		// Loop
+		bool isWindowActive = true;
 		while (WindowUpdate()) {
 			//
 			// Window size
@@ -66,14 +67,27 @@ int main(int argc, char **args) {
 				Controller *currentKeyboardController = &currentInput->keyboard;
 				Controller *prevKeyboardController = &prevInput->keyboard;
 				*currentKeyboardController = {};
-				for (u32 buttonIndex = 0; buttonIndex < ArrayCount(currentKeyboardController->buttons); ++buttonIndex) {
-					currentKeyboardController->buttons[buttonIndex].isDown = prevKeyboardController->buttons[buttonIndex].isDown;
+				if (isWindowActive) {
+					for (u32 buttonIndex = 0; buttonIndex < ArrayCount(currentKeyboardController->buttons); ++buttonIndex) {
+						currentKeyboardController->buttons[buttonIndex].isDown = prevKeyboardController->buttons[buttonIndex].isDown;
+					}
 				}
 
 				// Process events
 				Event event;
 				while (PollWindowEvent(&event)) {
 					switch (event.type) {
+						case EventType::Window:
+						{
+							switch (event.window.type) {
+								case WindowEventType::GotFocus:
+									isWindowActive = true;
+									break;
+								case WindowEventType::LostFocus:
+									isWindowActive = false;
+									break;
+							}
+						} break;
 						case EventType::Keyboard:
 						{
 							switch (event.keyboard.type) {

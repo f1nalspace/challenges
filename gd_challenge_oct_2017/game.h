@@ -25,6 +25,7 @@ namespace finalspace {
 		struct Wall {
 			Vec2f position;
 			Vec2f ext;
+			b32 isPlatform;
 		};
 
 		struct Game {
