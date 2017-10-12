@@ -38,11 +38,17 @@ namespace finalspace {
 		};
 
 		struct Game {
+			const f32 GameAspect = 16.0f / 9.0f;
+			const f32 GameWidth = 20.0f;
+			const f32 GameHeight = GameWidth / GameAspect;
+			const f32 HalfGameWidth = GameWidth * 0.5f;
+			const f32 HalfGameHeight = GameHeight * 0.5f;
+
 			Vec2f gravity;
 			std::vector<Entity> players;
 			std::vector<Wall> walls;
 
-			void *textureHandle;
+			Texture texture;
 
 			void Init();
 			void Release();

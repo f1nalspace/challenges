@@ -13,15 +13,8 @@ using namespace finalspace::utils;
 namespace finalspace {
 	namespace games {
 
-		constexpr f32 GameAspect = 16.0f / 9.0f;
-		constexpr f32 GameWidth = 20.0f;
-		constexpr f32 GameHeight = GameWidth / GameAspect;
-		constexpr f32 HalfGameWidth = GameWidth * 0.5f;
-		constexpr f32 HalfGameHeight = GameHeight * 0.5f;
-
-		struct WallSide
-		{
-			f32 x;
+		struct WallSide {
+			f32 plane;
 			// NOTE: Relative position in minkowski space
 			f32 relX;
 			f32 relY;
@@ -40,9 +33,9 @@ namespace finalspace {
 			glGenTextures(1, &handle);
 			glBindTexture(GL_TEXTURE_2D, handle);
 			glTexImage2D(GL_TEXTURE_2D, 0,
-						 GL_RGBA8,
-						 width, height, 0,
-						 GL_RGBA, GL_UNSIGNED_BYTE, data);
+				GL_RGBA8,
+				width, height, 0,
+				GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -57,29 +50,41 @@ namespace finalspace {
 		}
 
 		void Game::Release() {
-			GLuint texture = PointerToValue<GLuint>(textureHandle);
-			if (texture) {
-				glDeleteTextures(1, &texture);
-				textureHandle = nullptr;
+			GLuint textureId = PointerToValue<GLuint>(texture.handle);
+			if (textureId) {
+				glDeleteTextures(1, &textureId);
+				texture = {};
 			}
+		}
+
+		static Texture LoadTexture(const char *imageFilePath) {
+			Texture result = {};
+			fpl::files::FileHandle imageFileHandle = fpl::files::OpenBinaryFile(imageFilePath);
+			if (imageFileHandle.isValid) {
+				u32 imageFileSize = fpl::files::GetFileSize32(imageFileHandle);
+				if (imageFileSize) {
+					u8 *imageFileData = new u8[imageFileSize];
+					fpl::files::ReadFileBlock32(imageFileHandle, imageFileSize, imageFileData, imageFileSize);
+					int imageWidth, imageHeight, imageComponents;
+					auto imageData = stbi_load_from_memory(imageFileData, imageFileSize, &imageWidth, &imageHeight, &imageComponents, 4);
+					delete[] imageFileData;
+					if (imageData != nullptr) {
+						result.handle = AllocateTexture(imageWidth, imageHeight, imageData);
+						result.width = imageWidth;
+						result.height = imageHeight;
+						stbi_image_free(imageData);
+					}
+				}
+				fpl::files::CloseFile2(imageFileHandle);
+			}
+			return(result);
 		}
 
 		void Game::Init() {
 			fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
 
 			constexpr char *imageFilePath = "brickwall.png";
-			u32 imageFileSize = fpl::files::GetFileSize32(imageFilePath);
-			u8 *imageFileData = new u8[imageFileSize];
-			auto imageFileHandle = fpl::files::OpenBinaryFile(imageFilePath);
-			if (imageFileHandle.isValid) {
-				fpl::files::ReadFileBlock32(&imageFileHandle, imageFileSize, imageFileData, imageFileSize);
-				fpl::files::CloseFile2(&imageFileHandle);
-			}
-			int imageWidth, imageHeight, imageComponents;
-			auto imageData = stbi_load_from_memory(imageFileData, imageFileSize, &imageWidth, &imageHeight, &imageComponents, 4);
-			textureHandle = AllocateTexture(imageWidth, imageHeight, imageData);
-			stbi_image_free(imageData);
-			delete[] imageFileData;
+			texture = LoadTexture(imageFilePath);
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -191,13 +196,21 @@ namespace finalspace {
 		void Game::Render(RenderState &render) {
 			glViewport(0, 0, render.windowSize.w, render.windowSize.h);
 
-			// @TODO: Move later to modern opengl!
+			// @TODO: Migrate to modern opengl later!
 
+		#if 0
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(-HalfGameWidth, HalfGameWidth, -HalfGameHeight, HalfGameHeight, 0.0f, 1.0f);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
+		#else
+			Mat4f proj = Mat4f::CreateOrthoRH(-HalfGameWidth, HalfGameWidth, -HalfGameHeight, HalfGameHeight, 0.0f, 1.0f);
+			Mat4f model = Mat4f::Identity;
+			Mat4f mv = proj * model;
+			glMatrixMode(GL_MODELVIEW);
+			glLoadMatrixf(&mv.m[0]);
+		#endif
 
 			glClear(GL_COLOR_BUFFER_BIT);
 
@@ -234,7 +247,7 @@ namespace finalspace {
 				glPopMatrix();
 			}
 
-			GLuint texHandle = PointerToValue<GLuint>(textureHandle);
+			GLuint texHandle = PointerToValue<GLuint>(texture.handle);
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, texHandle);
 
@@ -288,10 +301,7 @@ namespace finalspace {
 			Vec2f playerDelta = 0.5f * acceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
 			player.velocity = acceleration * input.deltaTime + player.velocity;
 
-			// Dont assume we are grounded
-			player.isGrounded = false;
-
-			// Do line segment tests for each wall, find the side of the wall which is the nearest in time
+			// Do line segment tests for each wall, find the side of the wall which is nearest in time
 			// To enable colliding with multiple walls, we iterate it over a few times
 			for (u32 iteration = 0; iteration < 4; ++iteration) {
 				f32 tmin = 1.0f;
@@ -333,16 +343,13 @@ namespace finalspace {
 						bool wasHit = false;
 						for (u64 testSideIndex = 0; testSideIndex < wallSideCount; ++testSideIndex) {
 							WallSide *testSide = testSides + testSideIndex;
-							constexpr f32 epsilon = 0.001f;
-							if (testSide->deltaX != 0.0f)
-							{
-								f32 f = (testSide->x - testSide->relX) / testSide->deltaX;
+							if (testSide->deltaX != 0.0f) {
+								f32 f = (testSide->plane - testSide->relX) / testSide->deltaX;
 								f32 y = testSide->relY + f*testSide->deltaY;
-								if ((f >= 0.0f) && (hitTime > f))
-								{
-									if ((y >= testSide->minY) && (y <= testSide->maxY))
-									{
-										hitTime = Maximum(0.0f, f - epsilon);
+								if ((f >= 0.0f) && (hitTime > f)) {
+									if ((y >= testSide->minY) && (y <= testSide->maxY)) {
+										constexpr f32 EpsilonTime = 0.001f;
+										hitTime = Maximum(0.0f, f - EpsilonTime);
 										testSideNormal = testSide->normal;
 										wasHit = true;
 									}
@@ -350,9 +357,8 @@ namespace finalspace {
 							}
 						}
 
-						if (wasHit)
-						{
-							// One sided platform or solid block
+						if (wasHit) {
+							// Solid block or one sided platform
 							if ((!wall.isPlatform) || (wall.isPlatform && (Dot(playerDelta, Vec2f::Up) <= 0))) {
 								tmin = hitTime;
 								wallNormalMin = testSideNormal;
@@ -364,8 +370,7 @@ namespace finalspace {
 					Vec2f wallNormal = Vec2f();
 					Wall *hitWall = nullptr;
 					f32 stopTime;
-					if (tmin < tmax)
-					{
+					if (tmin < tmax) {
 						stopTime = tmin;
 						hitWall = hitWallMin;
 						wallNormal = wallNormalMin;
@@ -383,7 +388,7 @@ namespace finalspace {
 						player.velocity += -(1 + restitution) * Dot(player.velocity, wallNormal) * wallNormal;
 
 						// Are we grounded?
-						player.isGrounded = (wallNormal.x == 0) && (wallNormal.y == 1);
+						player.isGrounded = Dot(wallNormal, Vec2f::Up) > 0;
 					}
 
 				}

@@ -12,23 +12,21 @@ namespace finalspace {
 	namespace inputs {
 
 		struct ButtonState {
-			b32 isDown;
-			s32 halfTransitionCount;
+			b32 isDown = false;
+			s32 halfTransitionCount = 0;
 
 			inline bool WasPressed() const {
 				bool result = ((halfTransitionCount > 1) || ((halfTransitionCount == 1) && (isDown)));
 				return(result);
 			}
 
-			ButtonState() :
-				isDown(false),
-				halfTransitionCount(0) {
+			ButtonState() {
 			}
 		};
 
 		struct Controller {
-			u32 playerIndex;
-			Vec2f movement;
+			u32 playerIndex = 0;
+			Vec2f movement = Vec2f();
 			union {
 				struct {
 					ButtonState actionUp;
@@ -36,32 +34,24 @@ namespace finalspace {
 					ButtonState actionLeft;
 					ButtonState actionRight;
 				};
-				ButtonState buttons[4];
+				ButtonState buttons[4] = {};
 			};
 
-			Controller() :
-				playerIndex(0),
-				movement() {
-				for (auto &button : buttons)
-					button = ButtonState();
+			Controller() {
 			}
 		};
 
 		struct Input {
-			f32 deltaTime;
-			u32 playerOneControllerIndex;
+			f32 deltaTime = 0.0f;
+			u32 playerOneControllerIndex = 0;
 			union {
 				struct {
 					Controller keyboard;
 				};
-				Controller controllers[1];
+				Controller controllers[1] = {};
 			};
 
-			Input() :
-				deltaTime(0),
-				playerOneControllerIndex(0) {
-				for (auto &controller : controllers)
-					controller = Controller();
+			Input() {
 			}
 		};
 
