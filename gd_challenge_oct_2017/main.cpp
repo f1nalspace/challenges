@@ -79,6 +79,7 @@ int main(int argc, char **args) {
 					Controller *currentGamepadController = &currentInput->controllers[controllerIndex];
 					Controller *prevGamepadController = &prevInput->controllers[controllerIndex];
 					currentGamepadController->isConnected = prevGamepadController->isConnected;
+					currentGamepadController->isAnalog = prevGamepadController->isAnalog;
 				}
 
 				// Process events
@@ -114,7 +115,24 @@ int main(int argc, char **args) {
 								} break;
 								case GamepadEventType::StateChanged:
 								{
+									GamepadState &padstate = event.gamepad.state;
 									assert(gamepadController->isConnected);
+									if (abs(padstate.leftStickX) > 0.0f || abs(padstate.leftStickY) > 0.0f) {
+										gamepadController->isAnalog = true;
+										gamepadController->analogMovement.x = padstate.leftStickX;
+										gamepadController->analogMovement.y = padstate.leftStickY;
+									} else {
+										gamepadController->isAnalog = false;
+										ProcessKeyboardButton(padstate.dpadDown.isDown, gamepadController->moveDown);
+										ProcessKeyboardButton(padstate.dpadUp.isDown, gamepadController->moveUp);
+										ProcessKeyboardButton(padstate.dpadLeft.isDown, gamepadController->moveLeft);
+										ProcessKeyboardButton(padstate.dpadRight.isDown, gamepadController->moveRight);
+									}
+
+									ProcessKeyboardButton(padstate.actionA.isDown, gamepadController->actionDown);
+									ProcessKeyboardButton(padstate.actionB.isDown, gamepadController->actionRight);
+									ProcessKeyboardButton(padstate.actionX.isDown, gamepadController->actionLeft);
+									ProcessKeyboardButton(padstate.actionY.isDown, gamepadController->actionUp);
 								} break;
 							}
 						} break;

@@ -20,15 +20,16 @@ namespace finalspace {
 		};
 
 		struct Entity {
-			s32 controllerIndex;
 			Vec2f position;
 			Vec2f velocity;
+			Vec2f acceleration;
 			Vec2f ext;
 			EntityType type;
 			b32 isGrounded;
 			f32 horizontalSpeed;
 			f32 horizontalDrag;
 			b32 canJump;
+			u32 jumpCount;
 			f32 jumpPower;
 		};
 

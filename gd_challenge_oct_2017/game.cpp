@@ -33,9 +33,9 @@ namespace finalspace {
 			glGenTextures(1, &handle);
 			glBindTexture(GL_TEXTURE_2D, handle);
 			glTexImage2D(GL_TEXTURE_2D, 0,
-				GL_RGBA8,
-				width, height, 0,
-				GL_RGBA, GL_UNSIGNED_BYTE, data);
+						 GL_RGBA8,
+						 width, height, 0,
+						 GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -262,14 +262,13 @@ namespace finalspace {
 
 		u32 Game::CreatePlayer(const u32 controllerIndex) {
 			Entity player = Entity();
-			player.controllerIndex = controllerIndex;
 			player.position = Vec2f();
 			player.ext = Vec2f(0.5f, 0.5f);
 			player.horizontalSpeed = 20.0f;
 			player.horizontalDrag = 13.0f;
 			player.canJump = true;
 			player.jumpPower = 140.0f;
-			u32 result = players.size();
+			u32 result = (u32)players.size();
 			players.emplace_back(player);
 			return(result);
 		}
@@ -309,48 +308,63 @@ namespace finalspace {
 				}
 			}
 
+			// External forces (Gravity, drag, etc.)
 			for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 				Entity &player = players[playerIndex];
+				player.acceleration = Vec2f();
 
-				// @FIXME: This is not correct, we want to loop over the controller players and create the acceleration for the player
-				assert(player.controllerIndex >= 0 && player.controllerIndex < ArrayCount(input.controllers));
-				const Controller &playerController = input.controllers[player.controllerIndex];
+				// Gravity
+				player.acceleration += gravity;
+
+				// Horizontal drag
+				player.acceleration += -Dot(Vec2f::Right, player.velocity) * Vec2f::Right * player.horizontalDrag;
+			}
+
+			// Player forces
+			for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
+				u32 playerIndex = controlledPlayers[controlledPlayerIndex].playerIndex;
+				u32 controllerIndex = controlledPlayers[controlledPlayerIndex].controllerIndex;
+
+				assert(playerIndex < players.size());
+				assert(controllerIndex < ArrayCount(input.controllers));
+
+				Entity &player = players[playerIndex];
+				const Controller &playerController = input.controllers[controllerIndex];
 
 				b32 wasGrounded = player.isGrounded;
-				player.isGrounded = false;
 
 				// Set acceleration based on player input
-				Vec2f acceleration = Vec2f();
 				if (!playerController.isAnalog) {
 					if (playerController.moveLeft.isDown) {
-						acceleration.x = -1.0f * player.horizontalSpeed;
+						player.acceleration.x += -1.0f * player.horizontalSpeed;
 					} else if (playerController.moveRight.isDown) {
-						acceleration.x = 1.0f * player.horizontalSpeed;
+						player.acceleration.x += 1.0f * player.horizontalSpeed;
 					}
 				} else {
 					if (playerController.analogMovement.x != 0) {
-						acceleration.x = playerController.analogMovement.x * player.horizontalSpeed;
+						player.acceleration.x += playerController.analogMovement.x * player.horizontalSpeed;
 					}
 				}
 
 				// Jump
-				if (playerController.actionDown.isDown && player.canJump) {
-					if (wasGrounded) {
-						acceleration.y = 1.0f * player.jumpPower;
+				if (playerController.actionDown.isDown) {
+					if (wasGrounded && player.canJump && player.jumpCount == 0) {
+						player.acceleration.y += 1.0f * player.jumpPower;
+						++player.jumpCount;
 					}
 				}
+			}
 
-				// Gravity
-				acceleration += gravity;
+			for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
+				Entity &player = players[playerIndex];
 
-				// Horizontal drag
-				acceleration += -Dot(Vec2f::Right, player.velocity) * Vec2f::Right * player.horizontalDrag;
+				player.isGrounded = false;
 
 				// Movement equation:
 				// p' = (a / 2) * dt^2 + v * dt + p
 				// v' = a * dt + v
-				Vec2f playerDelta = 0.5f * acceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
-				player.velocity = acceleration * input.deltaTime + player.velocity;
+				Vec2f playerDelta = 0.5f * player.acceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
+				player.velocity = player.acceleration * input.deltaTime + player.velocity;
 
 				// Do line segment tests for each wall, find the side of the wall which is nearest in time
 				// To enable colliding with multiple walls, we iterate it over a few times
@@ -440,11 +454,15 @@ namespace finalspace {
 
 							// Are we grounded?
 							player.isGrounded = Dot(wallNormal, Vec2f::Up) > 0;
+							if (player.isGrounded) {
+								player.jumpCount = 0;
+							}
 						}
 
 					}
 
 				}
+				player.acceleration = Vec2f();
 			}
 		}
 	}
