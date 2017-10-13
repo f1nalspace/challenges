@@ -90,7 +90,7 @@ namespace finalspace {
 
 			gravity = Vec2f(0, -4);
 
-			isSinglePlayer = true;
+			isSinglePlayer = false;
 
 			// Fixed level for now
 			float wallDepth = 0.5f;
@@ -304,7 +304,26 @@ namespace finalspace {
 						controlledPlayers.emplace_back(controlledPlayer);
 					}
 				} else {
-					// @TODO: Disconnect controller
+					// @TODO: Faster search for existing controlled player
+					s32 foundControlledPlayerIndex = -1;
+					for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
+						if (controlledPlayers[controlledPlayerIndex].controllerIndex == controllerIndex) {
+							foundControlledPlayerIndex = controlledPlayerIndex;
+							break;
+						}
+					}
+
+					if (foundControlledPlayerIndex != -1) {
+						const ControlledPlayer &controlledPlayer = controlledPlayers[foundControlledPlayerIndex];
+						u32 playerIndex = controlledPlayer.playerIndex;
+						u32 controllerIndex = controlledPlayer.controllerIndex;
+
+						// @TODO: Give the player a bit time to reconnect - let it blink or something
+
+						// Remove player and controlled player
+						players.erase(players.begin() + playerIndex);
+						controlledPlayers.erase(controlledPlayers.begin() + foundControlledPlayerIndex);
+					}
 				}
 			}
 
