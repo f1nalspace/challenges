@@ -24,17 +24,29 @@ namespace finalspace {
 			}
 		};
 
+		enum class ControllerState {
+			None,
+			Connected,
+			Disconnected,
+		};
+
 		struct Controller {
-			u32 playerIndex = 0;
-			Vec2f movement = Vec2f();
+			ControllerState state = ControllerState::None;
+			b32 isConnected = false;
+			b32 isAnalog = false;
+			Vec2f analogMovement = Vec2f();
 			union {
 				struct {
+					ButtonState moveUp;
+					ButtonState moveDown;
+					ButtonState moveLeft;
+					ButtonState moveRight;
 					ButtonState actionUp;
 					ButtonState actionDown;
 					ButtonState actionLeft;
 					ButtonState actionRight;
 				};
-				ButtonState buttons[4] = {};
+				ButtonState buttons[8] = {};
 			};
 
 			Controller() {
@@ -43,12 +55,12 @@ namespace finalspace {
 
 		struct Input {
 			f32 deltaTime = 0.0f;
-			u32 playerOneControllerIndex = 0;
 			union {
 				struct {
 					Controller keyboard;
+					Controller gamepad[4];
 				};
-				Controller controllers[1] = {};
+				Controller controllers[5] = {};
 			};
 
 			Input() {

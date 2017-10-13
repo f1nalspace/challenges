@@ -20,6 +20,7 @@ namespace finalspace {
 		};
 
 		struct Entity {
+			s32 controllerIndex;
 			Vec2f position;
 			Vec2f velocity;
 			Vec2f ext;
@@ -37,6 +38,11 @@ namespace finalspace {
 			b32 isPlatform;
 		};
 
+		struct ControlledPlayer {
+			u32 playerIndex;
+			u32 controllerIndex;
+		};
+
 		struct Game {
 			const f32 GameAspect = 16.0f / 9.0f;
 			const f32 GameWidth = 20.0f;
@@ -45,10 +51,14 @@ namespace finalspace {
 			const f32 HalfGameHeight = GameHeight * 0.5f;
 
 			Vec2f gravity;
+			b32 isSinglePlayer;
 			std::vector<Entity> players;
 			std::vector<Wall> walls;
+			std::vector<ControlledPlayer> controlledPlayers;
 
 			Texture texture;
+
+			u32 CreatePlayer(const u32 controllerIndex);
 
 			void Init();
 			void Release();

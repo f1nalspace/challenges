@@ -90,19 +90,10 @@ namespace finalspace {
 
 			gravity = Vec2f(0, -4);
 
-			// Single player for now
-			Entity player = Entity();
-			player.position = Vec2f();
-			player.ext = Vec2f(0.5f, 0.5f);
-			player.horizontalSpeed = 20.0f;
-			player.horizontalDrag = 13.0f;
-			player.canJump = true;
-			player.jumpPower = 140.0f;
-			players.emplace_back(player);
+			isSinglePlayer = true;
 
 			// Fixed level for now
 			float wallDepth = 0.5f;
-
 
 			Wall wall;
 
@@ -198,19 +189,19 @@ namespace finalspace {
 
 			// @TODO: Migrate to modern opengl later!
 
-		#if 0
+#if 0
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(-HalfGameWidth, HalfGameWidth, -HalfGameHeight, HalfGameHeight, 0.0f, 1.0f);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
-		#else
+#else
 			Mat4f proj = Mat4f::CreateOrthoRH(-HalfGameWidth, HalfGameWidth, -HalfGameHeight, HalfGameHeight, 0.0f, 1.0f);
 			Mat4f model = Mat4f::Identity;
 			Mat4f mv = proj * model;
 			glMatrixMode(GL_MODELVIEW);
 			glLoadMatrixf(&mv.m[0]);
-		#endif
+#endif
 
 			glClear(GL_COLOR_BUFFER_BIT);
 
@@ -269,134 +260,192 @@ namespace finalspace {
 #endif
 		}
 
+		u32 Game::CreatePlayer(const u32 controllerIndex) {
+			Entity player = Entity();
+			player.controllerIndex = controllerIndex;
+			player.position = Vec2f();
+			player.ext = Vec2f(0.5f, 0.5f);
+			player.horizontalSpeed = 20.0f;
+			player.horizontalDrag = 13.0f;
+			player.canJump = true;
+			player.jumpPower = 140.0f;
+			u32 result = players.size();
+			players.emplace_back(player);
+			return(result);
+		}
+
 		void Game::Update(const Input &input) {
-			const Controller &playerController = input.controllers[input.playerOneControllerIndex];
+			// Controller logic
+			for (u32 controllerIndex = 0; controllerIndex < ArrayCount(input.controllers); ++controllerIndex) {
+				const Controller &testController = input.controllers[controllerIndex];
+				if (testController.isConnected) {
+					// @TODO: Faster search for existing controlled player
+					s32 foundControlledPlayerIndex = -1;
+					for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
+						if (controlledPlayers[controlledPlayerIndex].controllerIndex == controllerIndex) {
+							foundControlledPlayerIndex = controlledPlayerIndex;
+							break;
+						}
+					}
 
-			Entity &player = players[playerController.playerIndex];
-			b32 wasGrounded = player.isGrounded;
-			player.isGrounded = false;
-
-			// Set acceleration based on player input
-			Vec2f acceleration = {};
-			if (playerController.actionLeft.isDown) {
-				acceleration.x = -1.0f * player.horizontalSpeed;
-			} else if (playerController.actionRight.isDown) {
-				acceleration.x = 1.0f * player.horizontalSpeed;
-			}
-
-			// Jump
-			if (playerController.actionUp.isDown && player.canJump) {
-				if (wasGrounded) {
-					acceleration.y = 1.0f * player.jumpPower;
+					if (foundControlledPlayerIndex == -1) {
+						u32 playerIndex;
+						if (isSinglePlayer) {
+							if (players.size() == 0) {
+								playerIndex = CreatePlayer(controllerIndex);
+							} else {
+								playerIndex = 0;
+							}
+						} else {
+							playerIndex = CreatePlayer(controllerIndex);
+						}
+						ControlledPlayer controlledPlayer = {};
+						controlledPlayer.controllerIndex = controllerIndex;
+						controlledPlayer.playerIndex = playerIndex;
+						controlledPlayers.emplace_back(controlledPlayer);
+					}
+				} else {
+					// @TODO: Disconnect controller
 				}
 			}
 
-			// Gravity
-			acceleration += gravity;
+			for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
+				Entity &player = players[playerIndex];
 
-			// Horizontal drag
-			acceleration += -Dot(Vec2f::Right, player.velocity) * Vec2f::Right * player.horizontalDrag;
+				// @FIXME: This is not correct, we want to loop over the controller players and create the acceleration for the player
+				assert(player.controllerIndex >= 0 && player.controllerIndex < ArrayCount(input.controllers));
+				const Controller &playerController = input.controllers[player.controllerIndex];
 
-			// Movement equation:
-			// p' = (a / 2) * dt^2 + v * dt + p
-			// v' = a * dt + v
-			Vec2f playerDelta = 0.5f * acceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
-			player.velocity = acceleration * input.deltaTime + player.velocity;
+				b32 wasGrounded = player.isGrounded;
+				player.isGrounded = false;
 
-			// Do line segment tests for each wall, find the side of the wall which is nearest in time
-			// To enable colliding with multiple walls, we iterate it over a few times
-			for (u32 iteration = 0; iteration < 4; ++iteration) {
-				f32 tmin = 1.0f;
-				f32 tmax = 1.0f;
+				// Set acceleration based on player input
+				Vec2f acceleration = Vec2f();
+				if (!playerController.isAnalog) {
+					if (playerController.moveLeft.isDown) {
+						acceleration.x = -1.0f * player.horizontalSpeed;
+					} else if (playerController.moveRight.isDown) {
+						acceleration.x = 1.0f * player.horizontalSpeed;
+					}
+				} else {
+					if (playerController.analogMovement.x != 0) {
+						acceleration.x = playerController.analogMovement.x * player.horizontalSpeed;
+					}
+				}
 
-				f32 playerDeltaLen = Length(playerDelta);
-				if (playerDeltaLen > 0.0f) {
+				// Jump
+				if (playerController.actionDown.isDown && player.canJump) {
+					if (wasGrounded) {
+						acceleration.y = 1.0f * player.jumpPower;
+					}
+				}
 
-					Vec2f wallNormalMin = Vec2f();
-					Wall *hitWallMin = nullptr;
+				// Gravity
+				acceleration += gravity;
 
-					Vec2f targetPosition = player.position + playerDelta;
+				// Horizontal drag
+				acceleration += -Dot(Vec2f::Right, player.velocity) * Vec2f::Right * player.horizontalDrag;
 
-					for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
-						Wall &wall = walls[wallIndex];
+				// Movement equation:
+				// p' = (a / 2) * dt^2 + v * dt + p
+				// v' = a * dt + v
+				Vec2f playerDelta = 0.5f * acceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
+				player.velocity = acceleration * input.deltaTime + player.velocity;
 
-						Vec2f minkowskiExt = { player.ext.x + wall.ext.x, player.ext.y + wall.ext.y };
-						Vec2f minCorner = -minkowskiExt;
-						Vec2f maxCorner = minkowskiExt;
+				// Do line segment tests for each wall, find the side of the wall which is nearest in time
+				// To enable colliding with multiple walls, we iterate it over a few times
+				for (u32 iteration = 0; iteration < 4; ++iteration) {
+					f32 tmin = 1.0f;
+					f32 tmax = 1.0f;
 
-						Vec2f rel = player.position - wall.position;
+					f32 playerDeltaLen = Length(playerDelta);
+					if (playerDeltaLen > 0.0f) {
 
-						WallSide testSides[4] =
-						{
-							{ minCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, { -1, 0 } },
-							{ maxCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, { 1, 0 } },
-							{ minCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, -1 } },
-							{ maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, 1 } },
-						};
-						u32 wallSideCount = 4;
-						if (wall.isPlatform) {
-							wallSideCount = 1;
-							testSides[0] = { maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, 1 } };
-						}
+						Vec2f wallNormalMin = Vec2f();
+						Wall *hitWallMin = nullptr;
 
-						// @TODO: It works but i would prefered a generic line segment intersection test here
-						Vec2f testSideNormal = Vec2f();
-						f32 hitTime = tmin;
-						bool wasHit = false;
-						for (u64 testSideIndex = 0; testSideIndex < wallSideCount; ++testSideIndex) {
-							WallSide *testSide = testSides + testSideIndex;
-							if (testSide->deltaX != 0.0f) {
-								f32 f = (testSide->plane - testSide->relX) / testSide->deltaX;
-								f32 y = testSide->relY + f*testSide->deltaY;
-								if ((f >= 0.0f) && (hitTime > f)) {
-									if ((y >= testSide->minY) && (y <= testSide->maxY)) {
-										constexpr f32 EpsilonTime = 0.001f;
-										hitTime = Maximum(0.0f, f - EpsilonTime);
-										testSideNormal = testSide->normal;
-										wasHit = true;
+						Vec2f targetPosition = player.position + playerDelta;
+
+						for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
+							Wall &wall = walls[wallIndex];
+
+							Vec2f minkowskiExt = { player.ext.x + wall.ext.x, player.ext.y + wall.ext.y };
+							Vec2f minCorner = -minkowskiExt;
+							Vec2f maxCorner = minkowskiExt;
+
+							Vec2f rel = player.position - wall.position;
+
+							WallSide testSides[4] =
+							{
+								{ minCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, { -1, 0 } },
+								{ maxCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y, { 1, 0 } },
+								{ minCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, -1 } },
+								{ maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, 1 } },
+							};
+							u32 wallSideCount = 4;
+							if (wall.isPlatform) {
+								wallSideCount = 1;
+								testSides[0] = { maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, 1 } };
+							}
+
+							// @TODO: It works but i would prefered a generic line segment intersection test here
+							Vec2f testSideNormal = Vec2f();
+							f32 hitTime = tmin;
+							bool wasHit = false;
+							for (u64 testSideIndex = 0; testSideIndex < wallSideCount; ++testSideIndex) {
+								WallSide *testSide = testSides + testSideIndex;
+								if (testSide->deltaX != 0.0f) {
+									f32 f = (testSide->plane - testSide->relX) / testSide->deltaX;
+									f32 y = testSide->relY + f*testSide->deltaY;
+									if ((f >= 0.0f) && (hitTime > f)) {
+										if ((y >= testSide->minY) && (y <= testSide->maxY)) {
+											constexpr f32 EpsilonTime = 0.001f;
+											hitTime = Maximum(0.0f, f - EpsilonTime);
+											testSideNormal = testSide->normal;
+											wasHit = true;
+										}
 									}
+								}
+							}
+
+							if (wasHit) {
+								// Solid block or one sided platform
+								if ((!wall.isPlatform) || (wall.isPlatform && (Dot(playerDelta, Vec2f::Up) <= 0))) {
+									tmin = hitTime;
+									wallNormalMin = testSideNormal;
+									hitWallMin = &wall;
 								}
 							}
 						}
 
-						if (wasHit) {
-							// Solid block or one sided platform
-							if ((!wall.isPlatform) || (wall.isPlatform && (Dot(playerDelta, Vec2f::Up) <= 0))) {
-								tmin = hitTime;
-								wallNormalMin = testSideNormal;
-								hitWallMin = &wall;
-							}
+						Vec2f wallNormal = Vec2f();
+						Wall *hitWall = nullptr;
+						f32 stopTime;
+						if (tmin < tmax) {
+							stopTime = tmin;
+							hitWall = hitWallMin;
+							wallNormal = wallNormalMin;
+						} else {
+							stopTime = tmax;
 						}
-					}
 
-					Vec2f wallNormal = Vec2f();
-					Wall *hitWall = nullptr;
-					f32 stopTime;
-					if (tmin < tmax) {
-						stopTime = tmin;
-						hitWall = hitWallMin;
-						wallNormal = wallNormalMin;
-					} else {
-						stopTime = tmax;
-					}
+						player.position += stopTime * playerDelta;
 
-					player.position += stopTime * playerDelta;
+						if (hitWall != nullptr) {
+							// Recalculate player delta and apply bounce (canceling out the velocity along the normal)
+							f32 restitution = 0.0f;
+							playerDelta = targetPosition - player.position;
+							playerDelta += -(1 + restitution) * Dot(playerDelta, wallNormal) * wallNormal;
+							player.velocity += -(1 + restitution) * Dot(player.velocity, wallNormal) * wallNormal;
 
-					if (hitWall != nullptr) {
-						// Recalculate player delta and apply bounce (canceling out the velocity along the normal)
-						f32 restitution = 0.0f;
-						playerDelta = targetPosition - player.position;
-						playerDelta += -(1 + restitution) * Dot(playerDelta, wallNormal) * wallNormal;
-						player.velocity += -(1 + restitution) * Dot(player.velocity, wallNormal) * wallNormal;
+							// Are we grounded?
+							player.isGrounded = Dot(wallNormal, Vec2f::Up) > 0;
+						}
 
-						// Are we grounded?
-						player.isGrounded = Dot(wallNormal, Vec2f::Up) > 0;
 					}
 
 				}
-
 			}
-
 		}
 	}
 }

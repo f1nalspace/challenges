@@ -63,14 +63,22 @@ int main(int argc, char **args) {
 			// Input
 			//
 			{
-				// Remember previous keyboard input
+				// Remember previous keyboard state
 				Controller *currentKeyboardController = &currentInput->keyboard;
 				Controller *prevKeyboardController = &prevInput->keyboard;
 				*currentKeyboardController = {};
 				if (isWindowActive) {
+					currentKeyboardController->isConnected = true;
 					for (u32 buttonIndex = 0; buttonIndex < ArrayCount(currentKeyboardController->buttons); ++buttonIndex) {
 						currentKeyboardController->buttons[buttonIndex].isDown = prevKeyboardController->buttons[buttonIndex].isDown;
 					}
+				}
+
+				// Remember previous gamepad connected states
+				for (u32 controllerIndex = 1; controllerIndex < ArrayCount(currentInput->controllers); ++controllerIndex) {
+					Controller *currentGamepadController = &currentInput->controllers[controllerIndex];
+					Controller *prevGamepadController = &prevInput->controllers[controllerIndex];
+					currentGamepadController->isConnected = prevGamepadController->isConnected;
 				}
 
 				// Process events
@@ -88,6 +96,28 @@ int main(int argc, char **args) {
 									break;
 							}
 						} break;
+						case EventType::Gamepad:
+						{
+							// @CLEANUP: For now we just use the device index, but later it should be "added" to the controllers array and remembered somehow
+							u32 controllerIndex = 1 + event.gamepad.deviceIndex;
+							assert(controllerIndex < ArrayCount(currentInput->controllers));
+
+							Controller *gamepadController = &currentInput->controllers[controllerIndex];
+							switch (event.gamepad.type) {
+								case GamepadEventType::Connected:
+								{
+									gamepadController->isConnected = true;
+								} break;
+								case GamepadEventType::Disconnected:
+								{
+									gamepadController->isConnected = false;
+								} break;
+								case GamepadEventType::StateChanged:
+								{
+									assert(gamepadController->isConnected);
+								} break;
+							}
+						} break;
 						case EventType::Keyboard:
 						{
 							switch (event.keyboard.type) {
@@ -98,18 +128,21 @@ int main(int argc, char **args) {
 									switch (event.keyboard.mappedKey) {
 										case Key::Key_A:
 										case Key::Key_Left:
-											ProcessKeyboardButton(isDown, currentKeyboardController->actionLeft);
+											ProcessKeyboardButton(isDown, currentKeyboardController->moveLeft);
 											break;
 										case Key::Key_D:
 										case Key::Key_Right:
-											ProcessKeyboardButton(isDown, currentKeyboardController->actionRight);
+											ProcessKeyboardButton(isDown, currentKeyboardController->moveRight);
 											break;
 										case Key::Key_W:
 										case Key::Key_Up:
-											ProcessKeyboardButton(isDown, currentKeyboardController->actionUp);
+											ProcessKeyboardButton(isDown, currentKeyboardController->moveUp);
 											break;
 										case Key::Key_S:
 										case Key::Key_Down:
+											ProcessKeyboardButton(isDown, currentKeyboardController->moveDown);
+											break;
+										case Key::Key_Space:
 											ProcessKeyboardButton(isDown, currentKeyboardController->actionDown);
 											break;
 									}
