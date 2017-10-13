@@ -6,6 +6,7 @@
 #include <stb_image.h>
 
 #include "final_utils.h"
+#include "final_opengl.h"
 
 using namespace finalspace::renderer;
 using namespace finalspace::utils;
@@ -15,41 +16,25 @@ namespace finalspace {
 
 		struct WallSide {
 			f32 plane;
-			// NOTE: Relative position in minkowski space
+			// @NOTE: Relative position in minkowski space
 			f32 relX;
 			f32 relY;
-			// NOTE: Delta movement
+			// @NOTE: Delta movement
 			f32 deltaX;
 			f32 deltaY;
-			// NOTE: Min/Max corners
+			// @NOTE: Min/Max corners
 			f32 minY;
 			f32 maxY;
-			// NOTE: Surface normal
+			// @NOTE: Surface normal
 			Vec2f normal;
 		};
 
-		static void *AllocateTexture(const u32 width, const u32 height, void *data) {
-			GLuint handle;
-			glGenTextures(1, &handle);
-			glBindTexture(GL_TEXTURE_2D, handle);
-			glTexImage2D(GL_TEXTURE_2D, 0,
-						 GL_RGBA8,
-						 width, height, 0,
-						 GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-			glBindTexture(GL_TEXTURE_2D, 0);
-
-			assert(sizeof(handle) <= sizeof(void *));
-			void *result = ValueToPointer(handle);
-			return(result);
-		}
-
 		void Game::Release() {
+			controlledPlayers.clear();
+			players.clear();
+			walls.clear();
+
+			// @Temporary: Remove this later, the renderer should take care of that automatically
 			GLuint textureId = PointerToValue<GLuint>(texture.handle);
 			if (textureId) {
 				glDeleteTextures(1, &textureId);
@@ -69,7 +54,7 @@ namespace finalspace {
 					auto imageData = stbi_load_from_memory(imageFileData, imageFileSize, &imageWidth, &imageHeight, &imageComponents, 4);
 					delete[] imageFileData;
 					if (imageData != nullptr) {
-						result.handle = AllocateTexture(imageWidth, imageHeight, imageData);
+						result.handle = OpenGLRenderer::AllocateTexture(imageWidth, imageHeight, imageData);
 						result.width = imageWidth;
 						result.height = imageHeight;
 						stbi_image_free(imageData);
@@ -83,127 +68,122 @@ namespace finalspace {
 		void Game::Init() {
 			fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
 
-			constexpr char *imageFilePath = "brickwall.png";
-			texture = LoadTexture(imageFilePath);
-
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 			gravity = Vec2f(0, -4);
+			isSinglePlayer = true;
 
-			isSinglePlayer = false;
+			// @Temporary: Remove when have a proper asset system
+			constexpr char *imageFilePath = "brickwall.png";
+			texture = LoadTexture(imageFilePath);
 
-			// Fixed level for now
-			float wallDepth = 0.5f;
+			// @Temporary: Fixed level for now
+			{
+				constexpr float WallDepth = 0.5f;
+				Wall wall;
 
-			Wall wall;
+				// Solid side walls
+				wall = Wall();
+				wall.position = Vec2f(0, -HalfGameHeight + WallDepth * 0.5f);
+				wall.ext = Vec2f(HalfGameWidth, WallDepth * 0.5f);
+				walls.emplace_back(wall);
 
-			// Solid side walls
-			wall = Wall();
-			wall.position = Vec2f(0, -HalfGameHeight + wallDepth * 0.5f);
-			wall.ext = Vec2f(HalfGameWidth, wallDepth * 0.5f);
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.position = Vec2f(0, HalfGameHeight - WallDepth * 0.5f);
+				wall.ext = Vec2f(HalfGameWidth, WallDepth * 0.5f);
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.position = Vec2f(0, HalfGameHeight - wallDepth * 0.5f);
-			wall.ext = Vec2f(HalfGameWidth, wallDepth * 0.5f);
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.position = Vec2f(-HalfGameWidth + WallDepth * 0.5f, 0);
+				wall.ext = Vec2f(WallDepth * 0.5f, HalfGameHeight - (WallDepth));
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.position = Vec2f(-HalfGameWidth + wallDepth * 0.5f, 0);
-			wall.ext = Vec2f(wallDepth * 0.5f, HalfGameHeight - (wallDepth));
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.position = Vec2f(HalfGameWidth - WallDepth * 0.5f, 0);
+				wall.ext = Vec2f(WallDepth * 0.5f, HalfGameHeight - (WallDepth));
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.position = Vec2f(HalfGameWidth - wallDepth * 0.5f, 0);
-			wall.ext = Vec2f(wallDepth * 0.5f, HalfGameHeight - (wallDepth));
-			walls.emplace_back(wall);
+				// Small solid tiles
+				wall = Wall();
+				wall.position = Vec2f(-HalfGameWidth + 2.0f, -3.25f);
+				wall.ext = Vec2f(WallDepth * 0.5f, WallDepth * 0.5f);
+				walls.emplace_back(wall);
 
-			// Small solid tiles
-			wall = Wall();
-			wall.position = Vec2f(-HalfGameWidth + 2.0f, -3.25f);
-			wall.ext = Vec2f(wallDepth * 0.5f, wallDepth * 0.5f);
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.position = Vec2f(HalfGameWidth - 2.0f, -3.25f);
+				wall.ext = Vec2f(WallDepth * 0.5f, WallDepth * 0.5f);
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.position = Vec2f(HalfGameWidth - 2.0f, -3.25f);
-			wall.ext = Vec2f(wallDepth * 0.5f, wallDepth * 0.5f);
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.position = Vec2f(2.0f, 3.25f);
+				wall.ext = Vec2f(WallDepth * 0.5f, WallDepth * 0.5f);
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.position = Vec2f(2.0f, 3.25f);
-			wall.ext = Vec2f(wallDepth * 0.5f, wallDepth * 0.5f);
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.position = Vec2f(-2.0f, 3.25f);
+				wall.ext = Vec2f(WallDepth * 0.5f, WallDepth * 0.5f);
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.position = Vec2f(-2.0f, 3.25f);
-			wall.ext = Vec2f(wallDepth * 0.5f, wallDepth * 0.5f);
-			walls.emplace_back(wall);
+				// Center platforms
+				wall = Wall();
+				wall.position = Vec2f(0, -3.0f);
+				wall.ext = Vec2f(4.0f, WallDepth * 0.5f);
+				wall.isPlatform = true;
+				walls.emplace_back(wall);
 
-			// Center platforms
-			wall = Wall();
-			wall.position = Vec2f(0, -3.0f);
-			wall.ext = Vec2f(4.0f, wallDepth * 0.5f);
-			wall.isPlatform = true;
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.position = Vec2f(0, 1.25f);
+				wall.ext = Vec2f(4.0f, WallDepth * 0.5f);
+				wall.isPlatform = true;
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.position = Vec2f(0, 1.25f);
-			wall.ext = Vec2f(4.0f, wallDepth * 0.5f);
-			wall.isPlatform = true;
-			walls.emplace_back(wall);
+				// Side platforms
+				wall = Wall();
+				wall.ext = Vec2f(1.5f, WallDepth * 0.5f);
+				wall.position = Vec2f(-HalfGameWidth + wall.ext.w + WallDepth, -1.0f);
+				wall.isPlatform = true;
+				walls.emplace_back(wall);
 
-			// Side platforms
-			wall = Wall();
-			wall.ext = Vec2f(1.5f, wallDepth * 0.5f);
-			wall.position = Vec2f(-HalfGameWidth + wall.ext.w + wallDepth, -1.0f);
-			wall.isPlatform = true;
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.ext = Vec2f(1.5f, WallDepth * 0.5f);
+				wall.position = Vec2f(HalfGameWidth - wall.ext.w - WallDepth, -1.0f);
+				wall.isPlatform = true;
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.ext = Vec2f(1.5f, wallDepth * 0.5f);
-			wall.position = Vec2f(HalfGameWidth - wall.ext.w - wallDepth, -1.0f);
-			wall.isPlatform = true;
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.ext = Vec2f(1.0f, WallDepth * 0.5f);
+				wall.position = Vec2f(0.0f, -1.0f);
+				wall.isPlatform = true;
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.ext = Vec2f(1.0f, wallDepth * 0.5f);
-			wall.position = Vec2f(0.0f, -1.0f);
-			wall.isPlatform = true;
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.ext = Vec2f(1.0f, WallDepth * 0.5f);
+				wall.position = Vec2f(-HalfGameWidth + wall.ext.w + WallDepth, 3.0f);
+				wall.isPlatform = true;
+				walls.emplace_back(wall);
 
-			wall = Wall();
-			wall.ext = Vec2f(1.0f, wallDepth * 0.5f);
-			wall.position = Vec2f(-HalfGameWidth + wall.ext.w + wallDepth, 3.0f);
-			wall.isPlatform = true;
-			walls.emplace_back(wall);
-
-			wall = Wall();
-			wall.ext = Vec2f(1.0f, wallDepth * 0.5f);
-			wall.position = Vec2f(HalfGameWidth - wall.ext.w - wallDepth, 3.0f);
-			wall.isPlatform = true;
-			walls.emplace_back(wall);
+				wall = Wall();
+				wall.ext = Vec2f(1.0f, WallDepth * 0.5f);
+				wall.position = Vec2f(HalfGameWidth - wall.ext.w - WallDepth, 3.0f);
+				wall.isPlatform = true;
+				walls.emplace_back(wall);
+			}
 		}
 
 		void Game::Render(RenderState &render) {
-			glViewport(0, 0, render.windowSize.w, render.windowSize.h);
-
+			// @TODO: Letterbox!
+			// @TODO: Move to a command based renderer
 			// @TODO: Migrate to modern opengl later!
 
-#if 0
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
-			glOrtho(-HalfGameWidth, HalfGameWidth, -HalfGameHeight, HalfGameHeight, 0.0f, 1.0f);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-#else
+			glViewport(0, 0, render.windowSize.w, render.windowSize.h);
+
 			Mat4f proj = Mat4f::CreateOrthoRH(-HalfGameWidth, HalfGameWidth, -HalfGameHeight, HalfGameHeight, 0.0f, 1.0f);
 			Mat4f model = Mat4f::Identity;
 			Mat4f mv = proj * model;
 			glMatrixMode(GL_MODELVIEW);
 			glLoadMatrixf(&mv.m[0]);
-#endif
 
-			glClear(GL_COLOR_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			// Draw walls
 			for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
@@ -268,6 +248,7 @@ namespace finalspace {
 			player.horizontalDrag = 13.0f;
 			player.canJump = true;
 			player.jumpPower = 140.0f;
+
 			u32 result = (u32)players.size();
 			players.emplace_back(player);
 			return(result);
@@ -471,7 +452,7 @@ namespace finalspace {
 							playerDelta += -(1 + restitution) * Dot(playerDelta, wallNormal) * wallNormal;
 							player.velocity += -(1 + restitution) * Dot(player.velocity, wallNormal) * wallNormal;
 
-							// Are we grounded?
+							// Update grounded states
 							player.isGrounded = Dot(wallNormal, Vec2f::Up) > 0;
 							if (player.isGrounded) {
 								player.jumpCount = 0;

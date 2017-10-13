@@ -57,6 +57,7 @@ namespace finalspace {
 			std::vector<Wall> walls;
 			std::vector<ControlledPlayer> controlledPlayers;
 
+			// @Temporary: Remove this later when we have a proper asset system
 			Texture texture;
 
 			u32 CreatePlayer(const u32 controllerIndex);

@@ -20,7 +20,7 @@ using namespace finalspace::maths;
 using namespace finalspace::utils;
 using namespace finalspace::renderer;
 
-static void ProcessKeyboardButton(const b32 isDown, ButtonState &targetButton) {
+static void UpdateButtonState(const b32 isDown, ButtonState &targetButton) {
 	if (isDown != targetButton.isDown) {
 		targetButton.isDown = isDown;
 		++targetButton.halfTransitionCount;
@@ -30,7 +30,7 @@ static void ProcessKeyboardButton(const b32 isDown, ButtonState &targetButton) {
 int main(int argc, char **args) {
 	if (InitPlatform(InitFlags::VideoOpenGL)) {
 		SetWindowResizeable(true);
-		SetWindowArea(1280, 720);
+		SetWindowArea(800, 600);
 
 		// Init
 		Game *game = new Game();
@@ -123,16 +123,16 @@ int main(int argc, char **args) {
 										gamepadController->analogMovement.y = padstate.leftStickY;
 									} else {
 										gamepadController->isAnalog = false;
-										ProcessKeyboardButton(padstate.dpadDown.isDown, gamepadController->moveDown);
-										ProcessKeyboardButton(padstate.dpadUp.isDown, gamepadController->moveUp);
-										ProcessKeyboardButton(padstate.dpadLeft.isDown, gamepadController->moveLeft);
-										ProcessKeyboardButton(padstate.dpadRight.isDown, gamepadController->moveRight);
+										UpdateButtonState(padstate.dpadDown.isDown, gamepadController->moveDown);
+										UpdateButtonState(padstate.dpadUp.isDown, gamepadController->moveUp);
+										UpdateButtonState(padstate.dpadLeft.isDown, gamepadController->moveLeft);
+										UpdateButtonState(padstate.dpadRight.isDown, gamepadController->moveRight);
 									}
 
-									ProcessKeyboardButton(padstate.actionA.isDown, gamepadController->actionDown);
-									ProcessKeyboardButton(padstate.actionB.isDown, gamepadController->actionRight);
-									ProcessKeyboardButton(padstate.actionX.isDown, gamepadController->actionLeft);
-									ProcessKeyboardButton(padstate.actionY.isDown, gamepadController->actionUp);
+									UpdateButtonState(padstate.actionA.isDown, gamepadController->actionDown);
+									UpdateButtonState(padstate.actionB.isDown, gamepadController->actionRight);
+									UpdateButtonState(padstate.actionX.isDown, gamepadController->actionLeft);
+									UpdateButtonState(padstate.actionY.isDown, gamepadController->actionUp);
 								} break;
 							}
 						} break;
@@ -146,22 +146,22 @@ int main(int argc, char **args) {
 									switch (event.keyboard.mappedKey) {
 										case Key::Key_A:
 										case Key::Key_Left:
-											ProcessKeyboardButton(isDown, currentKeyboardController->moveLeft);
+											UpdateButtonState(isDown, currentKeyboardController->moveLeft);
 											break;
 										case Key::Key_D:
 										case Key::Key_Right:
-											ProcessKeyboardButton(isDown, currentKeyboardController->moveRight);
+											UpdateButtonState(isDown, currentKeyboardController->moveRight);
 											break;
 										case Key::Key_W:
 										case Key::Key_Up:
-											ProcessKeyboardButton(isDown, currentKeyboardController->moveUp);
+											UpdateButtonState(isDown, currentKeyboardController->moveUp);
 											break;
 										case Key::Key_S:
 										case Key::Key_Down:
-											ProcessKeyboardButton(isDown, currentKeyboardController->moveDown);
+											UpdateButtonState(isDown, currentKeyboardController->moveDown);
 											break;
 										case Key::Key_Space:
-											ProcessKeyboardButton(isDown, currentKeyboardController->actionDown);
+											UpdateButtonState(isDown, currentKeyboardController->actionDown);
 											break;
 									}
 								} break;

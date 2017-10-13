@@ -4,6 +4,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="final_maths.cpp" />
+    <ClCompile Include="final_opengl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="final_types.h" />
@@ -24,6 +25,7 @@
     <ClInclude Include="dependencies\include\stb_truetype.h">
       <Filter>dependencies</Filter>
     </ClInclude>
+    <ClInclude Include="final_opengl.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dependencies">
