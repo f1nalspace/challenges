@@ -10,6 +10,7 @@ using namespace fpl::console;
 #include "final_maths.h"
 #include "final_utils.h"
 #include "final_render.h"
+#include "final_opengl.h"
 
 // @TODO: Make this a full game independent platform layer
 #include "game.h"
@@ -33,8 +34,9 @@ int main(int argc, char **args) {
 		SetWindowArea(800, 600);
 
 		// Init
+		Renderer *renderer = (Renderer *)new OpenGLRenderer();
 		Game *game = new Game();
-		game->Init();
+		game->Init(*renderer);
 
 		constexpr f32 targetDeltaTime = 1.0f / 60.0f;
 
@@ -48,8 +50,6 @@ int main(int argc, char **args) {
 		Input *currentInput = &inputs[0];
 		Input *prevInput = &inputs[1];
 
-		RenderState renderState = {};
-
 		// Loop
 		bool isWindowActive = true;
 		while (WindowUpdate()) {
@@ -57,7 +57,7 @@ int main(int argc, char **args) {
 			// Window size
 			//
 			WindowSize windowArea = GetWindowArea();
-			renderState.windowSize = Vec2i(windowArea.width, windowArea.height);
+			renderer->windowSize = Vec2i(windowArea.width, windowArea.height);
 
 			//
 			// Input
@@ -188,7 +188,7 @@ int main(int argc, char **args) {
 			// Render
 			//
 			{
-				game->Render(renderState);
+				game->Render(*renderer);
 				WindowFlip();
 				++frameCount;
 			}
@@ -213,8 +213,9 @@ int main(int argc, char **args) {
 			Swap(currentInput, prevInput);
 		}
 
-		game->Release();
+		game->Release(*renderer);
 		delete game;
+		delete renderer;
 
 		ReleasePlatform();
 	}

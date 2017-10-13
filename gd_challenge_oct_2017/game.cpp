@@ -29,7 +29,7 @@ namespace finalspace {
 			Vec2f normal;
 		};
 
-		void Game::Release() {
+		void Game::Release(Renderer &renderer) {
 			controlledPlayers.clear();
 			players.clear();
 			walls.clear();
@@ -42,7 +42,7 @@ namespace finalspace {
 			}
 		}
 
-		static Texture LoadTexture(const char *imageFilePath) {
+		static Texture LoadTexture(Renderer &renderer, const char *imageFilePath) {
 			Texture result = {};
 			fpl::files::FileHandle imageFileHandle = fpl::files::OpenBinaryFile(imageFilePath);
 			if (imageFileHandle.isValid) {
@@ -54,7 +54,7 @@ namespace finalspace {
 					auto imageData = stbi_load_from_memory(imageFileData, imageFileSize, &imageWidth, &imageHeight, &imageComponents, 4);
 					delete[] imageFileData;
 					if (imageData != nullptr) {
-						result.handle = OpenGLRenderer::AllocateTexture(imageWidth, imageHeight, imageData);
+						result.handle = renderer.AllocateTexture(imageWidth, imageHeight, imageData);
 						result.width = imageWidth;
 						result.height = imageHeight;
 						stbi_image_free(imageData);
@@ -65,7 +65,7 @@ namespace finalspace {
 			return(result);
 		}
 
-		void Game::Init() {
+		void Game::Init(Renderer &renderer) {
 			fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -75,7 +75,7 @@ namespace finalspace {
 
 			// @Temporary: Remove when have a proper asset system
 			constexpr char *imageFilePath = "brickwall.png";
-			texture = LoadTexture(imageFilePath);
+			texture = LoadTexture(renderer, imageFilePath);
 
 			// @Temporary: Fixed level for now
 			{
@@ -170,52 +170,48 @@ namespace finalspace {
 			}
 		}
 
-		void Game::Render(RenderState &render) {
+		void Game::Render(Renderer &renderer) {
 			// @TODO: Letterbox!
 			// @TODO: Move to a command based renderer
 			// @TODO: Migrate to modern opengl later!
 
-			glViewport(0, 0, render.windowSize.w, render.windowSize.h);
-
-			Mat4f proj = Mat4f::CreateOrthoRH(-HalfGameWidth, HalfGameWidth, -HalfGameHeight, HalfGameHeight, 0.0f, 1.0f);
-			Mat4f model = Mat4f::Identity;
-			Mat4f mv = proj * model;
-			glMatrixMode(GL_MODELVIEW);
-			glLoadMatrixf(&mv.m[0]);
-
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			renderer.BeginFrame(HalfGameWidth, HalfGameHeight);
 
 			// Draw walls
 			for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
 				const Wall &wall = walls[wallIndex];
+
+				Mat4f translation = Mat4f::CreateTranslation(wall.position);
+				Mat4f mvp = renderer.viewProjection * translation;
+				glLoadMatrixf(&mvp.m[0]);
+
 				if (wall.isPlatform)
 					glColor3f(0.0f, 0.0f, 0.75f);
 				else
 					glColor3f(0.0f, 0.0f, 1.0f);
-				glPushMatrix();
-				glTranslatef(wall.position.x, wall.position.y, 0.0f);
 				glBegin(GL_QUADS);
 				glVertex2f(wall.ext.w, wall.ext.h);
 				glVertex2f(-wall.ext.w, wall.ext.h);
 				glVertex2f(-wall.ext.w, -wall.ext.h);
 				glVertex2f(wall.ext.w, -wall.ext.h);
 				glEnd();
-				glPopMatrix();
 			}
 
 			// Draw players
 			for (u32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 				const Entity &player = players[playerIndex];
+
+				Mat4f translation = Mat4f::CreateTranslation(player.position);
+				Mat4f mvp = renderer.viewProjection * translation;
+				glLoadMatrixf(&mvp.m[0]);
+
 				glColor3f(1.0f, 1.0f, 1.0f);
-				glPushMatrix();
-				glTranslatef(player.position.x, player.position.y, 0.0f);
 				glBegin(GL_QUADS);
 				glVertex2f(player.ext.w, player.ext.h);
 				glVertex2f(-player.ext.w, player.ext.h);
 				glVertex2f(-player.ext.w, -player.ext.h);
 				glVertex2f(player.ext.w, -player.ext.h);
 				glEnd();
-				glPopMatrix();
 			}
 
 #if 0
@@ -238,6 +234,8 @@ namespace finalspace {
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glDisable(GL_TEXTURE_2D);
 #endif
+
+			renderer.EndFrame();
 		}
 
 		u32 Game::CreatePlayer(const u32 controllerIndex) {
@@ -324,6 +322,9 @@ namespace finalspace {
 			for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
 				u32 playerIndex = controlledPlayers[controlledPlayerIndex].playerIndex;
 				u32 controllerIndex = controlledPlayers[controlledPlayerIndex].controllerIndex;
+
+				// @TODO: On app shutdown, this ensures that the last frame will be updated, otherwise it will crash.
+				if (playerIndex >= (players.size())) continue;
 
 				assert(playerIndex < players.size());
 				assert(controllerIndex < ArrayCount(input.controllers));

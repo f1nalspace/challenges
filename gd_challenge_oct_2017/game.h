@@ -62,10 +62,10 @@ namespace finalspace {
 
 			u32 CreatePlayer(const u32 controllerIndex);
 
-			void Init();
-			void Release();
+			void Init(Renderer &renderer);
+			void Release(Renderer &renderer);
 			void Update(const Input &input);
-			void Render(RenderState &render);
+			void Render(Renderer &renderer);
 		};
 
 	};
