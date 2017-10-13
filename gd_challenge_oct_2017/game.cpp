@@ -247,6 +247,7 @@ namespace finalspace {
 				glPopMatrix();
 			}
 
+#if 0
 			GLuint texHandle = PointerToValue<GLuint>(texture.handle);
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, texHandle);
@@ -265,6 +266,7 @@ namespace finalspace {
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glDisable(GL_TEXTURE_2D);
+#endif
 		}
 
 		void Game::Update(const Input &input) {
