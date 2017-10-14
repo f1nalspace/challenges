@@ -103,6 +103,10 @@ namespace finalspace {
 			void Init(Renderer &renderer);
 			void Release(Renderer &renderer);
 			void HandleControllerConnections(const finalspace::inputs::Input & input);
+			void HandlePlayerInput(const finalspace::inputs::Input & input);
+			void MovePlayers(const finalspace::inputs::Input & input);
+			void SetExternalForces();
+			void EditorUpdate(const finalspace::inputs::Input & input);
 			void Update(Renderer &renderer, const Input &input);
 			void Render(Renderer &renderer);
 		};
