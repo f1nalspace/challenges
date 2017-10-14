@@ -79,7 +79,7 @@ namespace finalspace {
 
 			// @Temporary: Fixed level for now
 			{
-				constexpr float WallDepth = 0.5f;
+				constexpr float WallDepth = TileSize;
 				Wall wall;
 
 				// Solid side walls
@@ -171,7 +171,7 @@ namespace finalspace {
 		}
 
 		void Game::Render(Renderer &renderer) {
-			renderer.BeginFrame(HalfGameWidth, HalfGameHeight, GameAspect);
+			renderer.BeginFrame();
 
 			// Draw walls
 			for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
@@ -207,6 +207,21 @@ namespace finalspace {
 				glVertex2f(-player.ext.w, player.ext.h);
 				glVertex2f(-player.ext.w, -player.ext.h);
 				glVertex2f(player.ext.w, -player.ext.h);
+				glEnd();
+			}
+
+			// Draw mouse pointer
+			{
+				Mat4f translation = Mat4f::CreateTranslation(mouseWorldPos);
+				Mat4f mvp = renderer.viewProjection * translation;
+				constexpr f32 cursorRadius = 0.1f;
+				glLoadMatrixf(&mvp.m[0]);
+				glColor3f(0.0f, 1.0f, 0.0f);
+				glBegin(GL_QUADS);
+				glVertex2f(cursorRadius, cursorRadius);
+				glVertex2f(-cursorRadius, cursorRadius);
+				glVertex2f(-cursorRadius, -cursorRadius);
+				glVertex2f(cursorRadius, -cursorRadius);
 				glEnd();
 			}
 
@@ -259,7 +274,14 @@ namespace finalspace {
 			return(result);
 		}
 
-		void Game::Update(const Input &input) {
+		void Game::Update(Renderer &renderer, const Input &input) {
+			renderer.Update(HalfGameWidth, HalfGameHeight, GameAspect);
+
+			// Get mouse position in world space
+			s32 mouseX = input.mouse.pos.x;
+			s32 mouseY = renderer.windowSize.h - 1 - input.mouse.pos.y;
+			mouseWorldPos = renderer.Unproject(Vec2i(mouseX, mouseY));
+
 			// Controller logic
 			for (u32 controllerIndex = 0; controllerIndex < ArrayCount(input.controllers); ++controllerIndex) {
 				const Controller &testController = input.controllers[controllerIndex];

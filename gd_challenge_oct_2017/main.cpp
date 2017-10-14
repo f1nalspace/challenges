@@ -49,6 +49,7 @@ int main(int argc, char **args) {
 		Input inputs[2] = {};
 		Input *currentInput = &inputs[0];
 		Input *prevInput = &inputs[1];
+		Vec2i lastMousePos = Vec2i(-1, -1);
 
 		// Loop
 		bool isWindowActive = true;
@@ -82,6 +83,9 @@ int main(int argc, char **args) {
 					currentGamepadController->isAnalog = prevGamepadController->isAnalog;
 				}
 
+				// Remember previous mouse states
+				currentInput->mouse.pos = lastMousePos;
+
 				// Process events
 				Event event;
 				while (PollWindowEvent(event)) {
@@ -97,6 +101,7 @@ int main(int argc, char **args) {
 									break;
 							}
 						} break;
+
 						case EventType::Gamepad:
 						{
 							// @CLEANUP: For now we just use the device index, but later it should be "added" to the controllers array and remembered somehow
@@ -136,6 +141,34 @@ int main(int argc, char **args) {
 								} break;
 							}
 						} break;
+
+						case EventType::Mouse:
+						{
+							switch (event.mouse.type) {
+								case MouseEventType::Move:
+								{
+									lastMousePos = currentInput->mouse.pos = Vec2i(event.mouse.mouseX, event.mouse.mouseY);
+								} break;
+
+								case MouseEventType::ButtonDown:
+								case MouseEventType::ButtonUp:
+								{
+									bool isDown = event.mouse.type == MouseEventType::ButtonDown;
+									if (event.mouse.mouseButton == MouseButtonType::Left)
+										UpdateButtonState(isDown, currentInput->mouse.left);
+									else if (event.mouse.mouseButton == MouseButtonType::Right)
+										UpdateButtonState(isDown, currentInput->mouse.right);
+									else if (event.mouse.mouseButton == MouseButtonType::Middle)
+										UpdateButtonState(isDown, currentInput->mouse.middle);
+								} break;
+
+								case MouseEventType::Wheel:
+								{
+									currentInput->mouse.wheelDelta = event.mouse.wheelDelta;
+								} break;
+							}
+						} break;
+
 						case EventType::Keyboard:
 						{
 							switch (event.keyboard.type) {
@@ -178,7 +211,7 @@ int main(int argc, char **args) {
 			{
 				frameAccumulator = Clamp(frameAccumulator, 0.0, 0.5);
 				while (frameAccumulator >= targetDeltaTime) {
-					game->Update(*currentInput);
+					game->Update(*renderer, *currentInput);
 					++updateCount;
 					frameAccumulator -= targetDeltaTime;
 				}

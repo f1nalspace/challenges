@@ -45,17 +45,22 @@ namespace finalspace {
 		};
 
 		struct Game {
-			const f32 GameAspect = 16.0f / 9.0f;
-			const f32 GameWidth = 20.0f;
-			const f32 GameHeight = GameWidth / GameAspect;
-			const f32 HalfGameWidth = GameWidth * 0.5f;
-			const f32 HalfGameHeight = GameHeight * 0.5f;
+			static constexpr f32 GameAspect = 16.0f / 9.0f;
+			static constexpr f32 TileSize = 0.5f;
+			static constexpr u32 TileCountForWidth = 40;
+			static constexpr u32 TileCountForHeight = (u32)(TileCountForWidth / GameAspect);
+			static constexpr f32 GameWidth = TileCountForWidth * TileSize;
+			static constexpr f32 GameHeight = TileCountForHeight * TileSize;
+			static constexpr f32 HalfGameWidth = GameWidth * 0.5f;
+			static constexpr f32 HalfGameHeight = GameHeight * 0.5f;
 
 			Vec2f gravity;
 			b32 isSinglePlayer;
 			std::vector<Entity> players;
 			std::vector<Wall> walls;
 			std::vector<ControlledPlayer> controlledPlayers;
+
+			Vec2f mouseWorldPos;
 
 			// @Temporary: Remove this later when we have a proper asset system
 			Texture texture;
@@ -66,7 +71,7 @@ namespace finalspace {
 
 			void Init(Renderer &renderer);
 			void Release(Renderer &renderer);
-			void Update(const Input &input);
+			void Update(Renderer &renderer, const Input &input);
 			void Render(Renderer &renderer);
 		};
 

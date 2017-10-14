@@ -53,6 +53,21 @@ namespace finalspace {
 			}
 		};
 
+		struct Mouse {
+			Vec2i pos = Vec2i();
+			f32 wheelDelta = 0.0f;
+			union {
+				struct {
+					ButtonState left;
+					ButtonState middle;
+					ButtonState right;
+				};
+				ButtonState buttons[3] = {};
+			};
+
+			Mouse() {}
+		};
+
 		struct Input {
 			f32 deltaTime = 0.0f;
 			union {
@@ -62,6 +77,7 @@ namespace finalspace {
 				};
 				Controller controllers[5] = {};
 			};
+			Mouse mouse = {};
 
 			Input() {
 			}
