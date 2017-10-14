@@ -19,7 +19,7 @@ namespace finalspace {
 			Mat4f viewProjection;
 			Vec2i windowSize;
 			virtual void *AllocateTexture(const u32 width, const u32 height, void *data) = 0;
-			virtual void BeginFrame(const f32 halfGameWidth, const f32 halfGameHeight) = 0;
+			virtual void BeginFrame(const f32 halfGameWidth, const f32 halfGameHeight, const f32 aspectRatio) = 0;
 			virtual void EndFrame() = 0;
 			Renderer() {}
 			virtual ~Renderer() {}

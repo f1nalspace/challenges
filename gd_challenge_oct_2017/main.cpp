@@ -31,7 +31,7 @@ static void UpdateButtonState(const b32 isDown, ButtonState &targetButton) {
 int main(int argc, char **args) {
 	if (InitPlatform(InitFlags::VideoOpenGL)) {
 		SetWindowResizeable(true);
-		SetWindowArea(800, 600);
+		SetWindowArea(1280, 720);
 
 		// Init
 		Renderer *renderer = (Renderer *)new OpenGLRenderer();

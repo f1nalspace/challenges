@@ -171,11 +171,7 @@ namespace finalspace {
 		}
 
 		void Game::Render(Renderer &renderer) {
-			// @TODO: Letterbox!
-			// @TODO: Move to a command based renderer
-			// @TODO: Migrate to modern opengl later!
-
-			renderer.BeginFrame(HalfGameWidth, HalfGameHeight);
+			renderer.BeginFrame(HalfGameWidth, HalfGameHeight, GameAspect);
 
 			// Draw walls
 			for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
@@ -252,20 +248,24 @@ namespace finalspace {
 			return(result);
 		}
 
+		s32 Game::FindControlledPlayerIndex(const u32 controllerIndex) {
+			s32 result = -1;
+			for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
+				if (controlledPlayers[controlledPlayerIndex].controllerIndex == controllerIndex) {
+					result = controlledPlayerIndex;
+					break;
+				}
+			}
+			return(result);
+		}
+
 		void Game::Update(const Input &input) {
 			// Controller logic
 			for (u32 controllerIndex = 0; controllerIndex < ArrayCount(input.controllers); ++controllerIndex) {
 				const Controller &testController = input.controllers[controllerIndex];
 				if (testController.isConnected) {
-					// @TODO: Faster search for existing controlled player
-					s32 foundControlledPlayerIndex = -1;
-					for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
-						if (controlledPlayers[controlledPlayerIndex].controllerIndex == controllerIndex) {
-							foundControlledPlayerIndex = controlledPlayerIndex;
-							break;
-						}
-					}
-
+					// @NOTE: Connected controller
+					s32 foundControlledPlayerIndex = FindControlledPlayerIndex(controllerIndex);
 					if (foundControlledPlayerIndex == -1) {
 						u32 playerIndex;
 						if (isSinglePlayer) {
@@ -275,6 +275,7 @@ namespace finalspace {
 								playerIndex = 0;
 							}
 						} else {
+							// @TODO: Limit the number of players
 							playerIndex = CreatePlayer(controllerIndex);
 						}
 						ControlledPlayer controlledPlayer = {};
@@ -283,15 +284,8 @@ namespace finalspace {
 						controlledPlayers.emplace_back(controlledPlayer);
 					}
 				} else {
-					// @TODO: Faster search for existing controlled player
-					s32 foundControlledPlayerIndex = -1;
-					for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
-						if (controlledPlayers[controlledPlayerIndex].controllerIndex == controllerIndex) {
-							foundControlledPlayerIndex = controlledPlayerIndex;
-							break;
-						}
-					}
-
+					// @NOTE: Disconnected controller
+					s32 foundControlledPlayerIndex = FindControlledPlayerIndex(controllerIndex);
 					if (foundControlledPlayerIndex != -1) {
 						const ControlledPlayer &controlledPlayer = controlledPlayers[foundControlledPlayerIndex];
 						u32 playerIndex = controlledPlayer.playerIndex;
@@ -323,7 +317,10 @@ namespace finalspace {
 				u32 playerIndex = controlledPlayers[controlledPlayerIndex].playerIndex;
 				u32 controllerIndex = controlledPlayers[controlledPlayerIndex].controllerIndex;
 
-				// @TODO: On app shutdown, this ensures that the last frame will be updated, otherwise it will crash.
+				// @BUG: On app shutdown this crashes due to the assert below.
+				// Players got cleared but connected controllers arent,
+				// because the controller is not disconnected when shutting down.
+				// This condition ensures that it wont crash, but its not correct!
 				if (playerIndex >= (players.size())) continue;
 
 				assert(playerIndex < players.size());
@@ -366,9 +363,10 @@ namespace finalspace {
 				// v' = a * dt + v
 				Vec2f playerDelta = 0.5f * player.acceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
 				player.velocity = player.acceleration * input.deltaTime + player.velocity;
+				player.acceleration = Vec2f();
 
 				// Do line segment tests for each wall, find the side of the wall which is nearest in time
-				// To enable colliding with multiple walls, we iterate it over a few times
+				// To support colliding with multiple walls we iterate a few times
 				for (u32 iteration = 0; iteration < 4; ++iteration) {
 					f32 tmin = 1.0f;
 					f32 tmax = 1.0f;
@@ -397,8 +395,11 @@ namespace finalspace {
 								{ minCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, -1 } },
 								{ maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, 1 } },
 							};
+
 							u32 wallSideCount = 4;
+
 							if (wall.isPlatform) {
+								// @NOTE: One a platform we just have to test for the upper side.
 								wallSideCount = 1;
 								testSides[0] = { maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x, { 0, 1 } };
 							}
@@ -463,7 +464,6 @@ namespace finalspace {
 					}
 
 				}
-				player.acceleration = Vec2f();
 			}
 		}
 	}

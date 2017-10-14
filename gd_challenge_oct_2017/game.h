@@ -62,6 +62,8 @@ namespace finalspace {
 
 			u32 CreatePlayer(const u32 controllerIndex);
 
+			s32 FindControlledPlayerIndex(const u32 controllerIndex);
+
 			void Init(Renderer &renderer);
 			void Release(Renderer &renderer);
 			void Update(const Input &input);

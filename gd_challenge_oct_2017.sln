@@ -5,6 +5,14 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gd_challenge_oct_2017", "gd_challenge_oct_2017\gd_challenge_oct_2017.vcxproj", "{A417A80B-C885-456F-9D29-00CACAAEC4A3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{3D66EA32-19FC-43B7-B7B3-51E6661E39D6}"
+	ProjectSection(SolutionItems) = preProject
+		docs\bubble_bobble.png = docs\bubble_bobble.png
+		docs\challenge-description.txt = docs\challenge-description.txt
+		docs\super_mario_bros.png = docs\super_mario_bros.png
+		docs\todo.txt = docs\todo.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

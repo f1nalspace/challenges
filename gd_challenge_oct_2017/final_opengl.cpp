@@ -26,13 +26,19 @@ namespace finalspace {
 			return(result);
 		}
 
-		void OpenGLRenderer::BeginFrame(const f32 halfGameWidth, const f32 halfGameHeight)
+		void OpenGLRenderer::BeginFrame(const f32 halfGameWidth, const f32 halfGameHeight, const f32 aspectRatio)
 		{
-			// @TODO: Letterbox!
-			// @TODO: Move to a command based renderer
-			// @TODO: Migrate to modern opengl later!
+			// Calculate a letterboxed viewport offset and size
+			f32 viewportScale = (f32)windowSize.w / (halfGameWidth * 2.0f);
+			Vec2i viewportSize = Vec2i(windowSize.w, (u32)(windowSize.w / aspectRatio));
+			if (viewportSize.h > windowSize.h) {
+				viewportSize.h = windowSize.h;
+				viewportSize.w = (u32)(viewportSize.h * aspectRatio);
+				viewportScale = (f32)viewportSize.w / (halfGameWidth * 2.0f);
+			}
+			Vec2i viewportOffset = Vec2i((windowSize.w - viewportSize.w) / 2, (windowSize.h - viewportSize.h) / 2);
 
-			glViewport(0, 0, windowSize.w, windowSize.h);
+			glViewport(viewportOffset.x, viewportOffset.y, viewportSize.w, viewportSize.h);
 
 			Mat4f proj = Mat4f::CreateOrthoRH(-halfGameWidth, halfGameWidth, -halfGameHeight, halfGameHeight, 0.0f, 1.0f);
 			Mat4f model = Mat4f::Identity;
