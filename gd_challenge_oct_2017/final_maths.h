@@ -82,7 +82,7 @@ namespace finalspace {
 				y = from.y;
 			}
 
-			inline Vec2f Swizzle(const u32 indexX = 0, const u32 indexY = 1) {
+			inline Vec2f Swizzle(const u32 indexX = 0, const u32 indexY = 1) const {
 				assert(indexX < 4);
 				assert(indexY < 4);
 				Vec2f result = Vec2f(elements[indexX], elements[indexY]);
@@ -90,10 +90,10 @@ namespace finalspace {
 			}
 
 			// @NOTE: Static initialization is done in the source file
-			static const Vec2f Up;
-			static const Vec2f Down;
-			static const Vec2f Left;
-			static const Vec2f Right;
+			static const Vec2f &Up;
+			static const Vec2f &Down;
+			static const Vec2f &Left;
+			static const Vec2f &Right;
 		};
 
 		//
@@ -160,7 +160,7 @@ namespace finalspace {
 				z = from.z;
 			}
 
-			inline Vec3f Swizzle(const u32 indexX = 0, const u32 indexY = 1, const u32 indexZ = 2) {
+			inline Vec3f Swizzle(const u32 indexX = 0, const u32 indexY = 1, const u32 indexZ = 2) const {
 				assert(indexX < 4);
 				assert(indexY < 4);
 				assert(indexZ < 4);
@@ -169,10 +169,10 @@ namespace finalspace {
 			}
 
 			// @NOTE: Static initialization is done in the source file
-			static const Vec3f Up;
-			static const Vec3f Down;
-			static const Vec3f Left;
-			static const Vec3f Right;
+			static const Vec3f &Up;
+			static const Vec3f &Down;
+			static const Vec3f &Left;
+			static const Vec3f &Right;
 		};
 
 		//
@@ -280,7 +280,7 @@ namespace finalspace {
 				w = from.w;
 			}
 
-			inline Vec4f Swizzle(const u32 indexX = 0, const u32 indexY = 1, const u32 indexZ = 2, const u32 indexW = 3) {
+			inline Vec4f Swizzle(const u32 indexX = 0, const u32 indexY = 1, const u32 indexZ = 2, const u32 indexW = 3) const {
 				assert(indexX < 4);
 				assert(indexY < 4);
 				assert(indexZ < 4);
@@ -288,6 +288,13 @@ namespace finalspace {
 				Vec4f result = Vec4f(elements[indexX], elements[indexY], elements[indexZ], elements[indexW]);
 				return(result);
 			}
+
+			static const Vec4f &White;
+			static const Vec4f &Black;
+			static const Vec4f &Red;
+			static const Vec4f &Green;
+			static const Vec4f &Blue;
+			static const Vec4f &Yellow;
 		};
 
 		//
@@ -548,7 +555,7 @@ namespace finalspace {
 				return(result);
 			}
 
-			static const Mat4f Identity;
+			static const Mat4f &Identity;
 		};
 
 		//

@@ -1,5 +1,6 @@
 Todo-List:
 
+- Fast quad and sprite rendering using a vertex buffer
 - Move to a tilemap based level system for rendering and creating the walls and platforms
 	-> Use bitmaps for tile editor for now
 - Drawing actual sprites for the level (Use the sprites from leverman and make it 16 palette ones)

@@ -3,7 +3,6 @@
 
 using namespace fpl;
 using namespace fpl::window;
-using namespace fpl::timings;
 using namespace fpl::console;
 
 #include "final_types.h"
@@ -40,8 +39,8 @@ int main(int argc, char **args) {
 
 		constexpr f32 targetDeltaTime = 1.0f / 60.0f;
 
-		f64 lastTime = GetHighResolutionTimeInSeconds();
-		f64 fpsTimerInSecs = GetHighResolutionTimeInSeconds();
+		f64 lastTime = timings::GetHighResolutionTimeInSeconds();
+		f64 fpsTimerInSecs = timings::GetHighResolutionTimeInSeconds();
 		f64 frameAccumulator = targetDeltaTime;
 		uint32_t frameCount = 0;
 		uint32_t updateCount = 0;
@@ -64,14 +63,20 @@ int main(int argc, char **args) {
 			// Input
 			//
 			{
-				// Remember previous keyboard state
+				// Remember previous keyboard and mouse state
 				Controller *currentKeyboardController = &currentInput->keyboard;
 				Controller *prevKeyboardController = &prevInput->keyboard;
+				Mouse *currentMouse = &currentInput->mouse;
+				Mouse *prevMouse = &prevInput->mouse;
 				*currentKeyboardController = {};
+				*currentMouse = {};
 				if (isWindowActive) {
 					currentKeyboardController->isConnected = true;
 					for (u32 buttonIndex = 0; buttonIndex < ArrayCount(currentKeyboardController->buttons); ++buttonIndex) {
 						currentKeyboardController->buttons[buttonIndex].isDown = prevKeyboardController->buttons[buttonIndex].isDown;
+					}
+					for (u32 buttonIndex = 0; buttonIndex < ArrayCount(currentMouse->buttons); ++buttonIndex) {
+						currentMouse->buttons[buttonIndex].isDown = prevMouse->buttons[buttonIndex].isDown;
 					}
 				}
 
@@ -154,12 +159,13 @@ int main(int argc, char **args) {
 								case MouseEventType::ButtonUp:
 								{
 									bool isDown = event.mouse.type == MouseEventType::ButtonDown;
-									if (event.mouse.mouseButton == MouseButtonType::Left)
+									if (event.mouse.mouseButton == MouseButtonType::Left) {
 										UpdateButtonState(isDown, currentInput->mouse.left);
-									else if (event.mouse.mouseButton == MouseButtonType::Right)
+									} else if (event.mouse.mouseButton == MouseButtonType::Right) {
 										UpdateButtonState(isDown, currentInput->mouse.right);
-									else if (event.mouse.mouseButton == MouseButtonType::Middle)
+									} else if (event.mouse.mouseButton == MouseButtonType::Middle) {
 										UpdateButtonState(isDown, currentInput->mouse.middle);
+									}
 								} break;
 
 								case MouseEventType::Wheel:
@@ -205,6 +211,11 @@ int main(int argc, char **args) {
 				currentInput->deltaTime = targetDeltaTime;
 			}
 
+			b32 _tmpIsDown = GetAsyncKeyState(VK_LBUTTON) & (1 << 15) ? 1 : 0;
+			if (currentInput->mouse.left.isDown) {
+			}
+			
+
 			//
 			// Update
 			//
@@ -230,7 +241,7 @@ int main(int argc, char **args) {
 			// Timings
 			//
 			{
-				f64 frameEndTime = GetHighResolutionTimeInSeconds();
+				f64 frameEndTime = timings::GetHighResolutionTimeInSeconds();
 				f64 frameDuration = frameEndTime - lastTime;
 				frameAccumulator += frameDuration;
 				lastTime = frameEndTime;

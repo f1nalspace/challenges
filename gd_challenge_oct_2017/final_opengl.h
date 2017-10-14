@@ -13,6 +13,8 @@ namespace finalspace {
 			void EndFrame() override;
 			void Update(const f32 halfGameWidth, const f32 halfGameHeight, const f32 aspectRatio) override;
 			Vec2f Unproject(const Vec2i &windowPos) override;
+			void DrawRectangle(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const bool isFilled) override;
+			void DrawSprite(const Vec2f &pos, const Vec2f &ext, const Texture &texture) override;
 			OpenGLRenderer() : Renderer() {}
 			~OpenGLRenderer() {};
 		};

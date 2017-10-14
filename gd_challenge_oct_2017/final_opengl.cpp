@@ -69,5 +69,40 @@ namespace finalspace {
 			}
 			return(result);
 		}
+		void OpenGLRenderer::DrawRectangle(const Vec2f & pos, const Vec2f & ext, const Vec4f &color, const bool isFilled)
+		{
+			Mat4f translation = Mat4f::CreateTranslation(pos);
+			Mat4f mvp = viewProjection * translation;
+			glLoadMatrixf(&mvp.m[0]);
+
+			glColor4fv(&color.elements[0]);
+
+			glBegin(isFilled ? GL_QUADS : GL_LINE_LOOP);
+			glVertex2f(ext.w, ext.h);
+			glVertex2f(-ext.w, ext.h);
+			glVertex2f(-ext.w, -ext.h);
+			glVertex2f(ext.w, -ext.h);
+			glEnd();
+		}
+
+		void OpenGLRenderer::DrawSprite(const Vec2f &pos, const Vec2f &ext, const Texture &texture) {
+			Mat4f translation = Mat4f::CreateTranslation(pos);
+			Mat4f mvp = viewProjection * translation;
+			glLoadMatrixf(&mvp.m[0]);
+
+			GLuint texHandle = utils::PointerToValue<GLuint>(texture.handle);
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, texHandle);
+
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			glBegin(GL_QUADS);
+			glTexCoord2f(1.0f, 1.0f); glVertex2f(ext.w, ext.h);
+			glTexCoord2f(0.0f, 1.0f); glVertex2f(-ext.w, ext.h);
+			glTexCoord2f(0.0f, 0.0f); glVertex2f(-ext.w, -ext.h);
+			glTexCoord2f(1.0f, 0.0f); glVertex2f(ext.w, -ext.h);
+			glEnd();;
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
 	}
 }

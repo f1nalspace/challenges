@@ -31,6 +31,8 @@ namespace finalspace {
 			virtual void EndFrame() = 0;
 			virtual void Update(const f32 halfGameWidth, const f32 halfGameHeight, const f32 aspectRatio) = 0;
 			virtual Vec2f Unproject(const Vec2i &windowPos) = 0;
+			virtual void DrawRectangle(const Vec2f &pos, const Vec2f &ext, const Vec4f &color = Vec4f::White, const bool isFilled = true) = 0;
+			virtual void DrawSprite(const Vec2f &pos, const Vec2f &ext, const Texture &texture) = 0;
 			Renderer() {}
 			virtual ~Renderer() {}
 		};
