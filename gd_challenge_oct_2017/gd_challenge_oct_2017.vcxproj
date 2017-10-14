@@ -166,6 +166,7 @@
   <ItemGroup>
     <ClCompile Include="final_maths.cpp" />
     <ClCompile Include="final_opengl.cpp" />
+    <ClCompile Include="final_tiletrace.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -178,6 +179,7 @@
     <ClInclude Include="final_maths.h" />
     <ClInclude Include="final_opengl.h" />
     <ClInclude Include="final_render.h" />
+    <ClInclude Include="final_tiletrace.h" />
     <ClInclude Include="final_types.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="final_utils.h" />

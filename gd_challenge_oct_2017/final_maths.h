@@ -16,7 +16,6 @@
 
 namespace finalspace {
 	namespace maths {
-
 		//
 		// Forward declarations
 		//
@@ -47,6 +46,33 @@ namespace finalspace {
 				y = newY;
 			}
 			inline Vec2i(const Vec2i &from) {
+				x = from.x;
+				y = from.y;
+			}
+		};
+
+		//
+		// Vec2u (2D unsigned 32-bit integer)
+		//
+		union Vec2u {
+			struct {
+				u32 x;
+				u32 y;
+			};
+			struct {
+				u32 w;
+				u32 h;
+			};
+			u32 elements[2];
+
+			inline Vec2u(const u32 xy = 0) {
+				x = y = xy;
+			}
+			inline Vec2u(const u32 newX, const u32 newY) {
+				x = newX;
+				y = newY;
+			}
+			inline Vec2u(const Vec2u &from) {
 				x = from.x;
 				y = from.y;
 			}
@@ -597,9 +623,63 @@ namespace finalspace {
 			return(result);
 		}
 
+		inline f32 Absolute(const f32 value) {
+			f32 result = fabsf(value);
+			return(result);
+		}
+
+		inline bool IsEqual(const f32 a, const f32 b, const f32 tolerance) {
+			bool result = Absolute(a - b) < tolerance;
+			return(result);
+		}
+
+		//
+		// Vec2i functions (Do not depend on the operators)
+		//
+		inline bool IsEqual(const Vec2i a, const Vec2i b) {
+			bool result = (a.x == b.x) && (a.y == b.y);
+			return(result);
+		}
+
+		inline s32 Dot(const Vec2i &a, const Vec2i &b) {
+			s32 result = a.x * b.x + a.y * b.y;
+			return(result);
+		}
+
+		//
+		// Vec2i operators (+, -, *, += etc.)
+		//
+		inline Vec2i operator + (const Vec2i &a, const Vec2i &b) {
+			Vec2i result = Vec2i();
+			result.x = a.x + b.x;
+			result.y = a.y + b.y;
+			return(result);
+		}
+		inline Vec2i &operator += (Vec2i &left, const Vec2i &right) {
+			left.x += right.x;
+			left.y += right.y;
+			return(left);
+		}
+		inline Vec2i operator - (const Vec2i &a, const Vec2i &b) {
+			Vec2i result = Vec2i();
+			result.x = a.x - b.x;
+			result.y = a.y - b.y;
+			return(result);
+		}
+		inline Vec2i &operator -= (Vec2i &left, const Vec2i &right) {
+			left.x -= right.x;
+			left.y -= right.y;
+			return(left);
+		}
+
 		//
 		// Vec2f functions (Do not depend on the operators)
 		//
+		inline bool IsEqual(const Vec2f a, const Vec2f b, const f32 tolerance) {
+			bool result = IsEqual(a.x, b.x, tolerance) && IsEqual(a.y, b.y, tolerance);
+			return(result);
+		}
+
 		inline f32 Dot(const Vec2f &a, const Vec2f &b) {
 			f32 result = a.x * b.x + a.y * b.y;
 			return(result);
@@ -733,6 +813,14 @@ namespace finalspace {
 		//
 		// Vec3f functions (Do not depend on the operators)
 		//
+		inline bool IsEqual(const Vec3f a, const Vec3f b, const f32 tolerance) {
+			bool result = 
+				IsEqual(a.x, b.x, tolerance) && 
+				IsEqual(a.y, b.y, tolerance) &&
+				IsEqual(a.z, b.z, tolerance);
+			return(result);
+		}
+
 		inline f32 Dot(const Vec3f &a, const Vec3f &b) {
 			f32 result = a.x * b.x + a.y * b.y + a.z * b.z;
 			return(result);

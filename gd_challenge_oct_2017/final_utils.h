@@ -1,5 +1,7 @@
 #pragma once
 
+#include <assert.h>
+
 namespace finalspace {
 	namespace utils {
 		template <typename T>
@@ -25,6 +27,19 @@ namespace finalspace {
 		inline void *ValueToPointer(const T value) {
 			void *result = (void *)(uintptr_t)value;
 			return(result);
+		}
+
+		template <typename T, typename U, u64 N>
+		inline void ArrayRemoveAndKeepOrder(T (&arr)[N], const U indexToRemove, U &count) {
+			assert(indexToRemove < N);
+			U oldListCount = count;
+			assert(oldListCount > 0);
+			for (U itemIndex = indexToRemove; itemIndex < oldListCount - 1; ++itemIndex) {
+				T tmp = arr[itemIndex];
+				arr[itemIndex] = arr[itemIndex + 1];
+				arr[itemIndex + 1] = tmp;
+			}
+			count = oldListCount - 1;
 		}
 
 	};

@@ -5,6 +5,7 @@
     <ClCompile Include="game.cpp" />
     <ClCompile Include="final_maths.cpp" />
     <ClCompile Include="final_opengl.cpp" />
+    <ClCompile Include="final_tiletrace.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="final_types.h" />
@@ -26,6 +27,7 @@
       <Filter>dependencies</Filter>
     </ClInclude>
     <ClInclude Include="final_opengl.h" />
+    <ClInclude Include="final_tiletrace.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dependencies">
