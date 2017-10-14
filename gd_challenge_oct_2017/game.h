@@ -45,12 +45,12 @@ namespace finalspace {
 		};
 
 		struct Game {
-			static constexpr f32 GameAspect = 16.0f / 9.0f;
 			static constexpr f32 TileSize = 0.5f;
 			static constexpr u32 TileCountForWidth = 40;
-			static constexpr u32 TileCountForHeight = (u32)(TileCountForWidth / GameAspect);
+			static constexpr u32 TileCountForHeight = 22;
+			static constexpr f32 GameAspect = TileCountForWidth / (f32)TileCountForHeight;
 			static constexpr f32 GameWidth = TileCountForWidth * TileSize;
-			static constexpr f32 GameHeight = TileCountForHeight * TileSize;
+			static constexpr f32 GameHeight = GameWidth / GameAspect;
 			static constexpr f32 HalfGameWidth = GameWidth * 0.5f;
 			static constexpr f32 HalfGameHeight = GameHeight * 0.5f;
 
