@@ -74,7 +74,7 @@ namespace finalspace {
 
 			gravity = Vec2f(0, -4);
 			isSinglePlayer = true;
-			isEditor = true;
+			isEditor = false;
 
 			// @Temporary: Remove when have a proper asset system
 			constexpr char *imageFilePath = "brickwall.png";

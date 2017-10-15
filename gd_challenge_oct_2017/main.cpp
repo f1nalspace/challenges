@@ -20,11 +20,16 @@ using namespace finalspace::maths;
 using namespace finalspace::utils;
 using namespace finalspace::renderer;
 
-static void UpdateButtonState(const b32 isDown, ButtonState &targetButton) {
+static void UpdateKeyboardButtonState(const b32 isDown, ButtonState &targetButton) {
 	if (isDown != targetButton.isDown) {
 		targetButton.isDown = isDown;
 		++targetButton.halfTransitionCount;
 	}
+}
+
+static void UpdateDigitalButtonState(const b32 isDown, const ButtonState &oldState, ButtonState &newState) {
+	newState.isDown = isDown;
+	newState.halfTransitionCount = (oldState.isDown != newState.isDown) ? 1 : 0;
 }
 
 int main(int argc, char **args) {
@@ -113,36 +118,37 @@ int main(int argc, char **args) {
 							u32 controllerIndex = 1 + event.gamepad.deviceIndex;
 							assert(controllerIndex < ArrayCount(currentInput->controllers));
 
-							Controller *gamepadController = &currentInput->controllers[controllerIndex];
+							Controller *currentController = &currentInput->controllers[controllerIndex];
+							Controller *prevController = &prevInput->controllers[controllerIndex];
 							switch (event.gamepad.type) {
 								case GamepadEventType::Connected:
 								{
-									gamepadController->isConnected = true;
+									currentController->isConnected = true;
 								} break;
 								case GamepadEventType::Disconnected:
 								{
-									gamepadController->isConnected = false;
+									currentController->isConnected = false;
 								} break;
 								case GamepadEventType::StateChanged:
 								{
 									GamepadState &padstate = event.gamepad.state;
-									assert(gamepadController->isConnected);
+									assert(currentController->isConnected);
 									if (abs(padstate.leftStickX) > 0.0f || abs(padstate.leftStickY) > 0.0f) {
-										gamepadController->isAnalog = true;
-										gamepadController->analogMovement.x = padstate.leftStickX;
-										gamepadController->analogMovement.y = padstate.leftStickY;
+										currentController->isAnalog = true;
+										currentController->analogMovement.x = padstate.leftStickX;
+										currentController->analogMovement.y = padstate.leftStickY;
 									} else {
-										gamepadController->isAnalog = false;
-										UpdateButtonState(padstate.dpadDown.isDown, gamepadController->moveDown);
-										UpdateButtonState(padstate.dpadUp.isDown, gamepadController->moveUp);
-										UpdateButtonState(padstate.dpadLeft.isDown, gamepadController->moveLeft);
-										UpdateButtonState(padstate.dpadRight.isDown, gamepadController->moveRight);
+										currentController->isAnalog = false;
+										UpdateDigitalButtonState(padstate.dpadDown.isDown, prevController->moveDown, currentController->moveDown);
+										UpdateDigitalButtonState(padstate.dpadUp.isDown, prevController->moveUp, currentController->moveUp);
+										UpdateDigitalButtonState(padstate.dpadLeft.isDown, prevController->moveLeft, currentController->moveLeft);
+										UpdateDigitalButtonState(padstate.dpadRight.isDown, prevController->moveRight, currentController->moveRight);
 									}
 
-									UpdateButtonState(padstate.actionA.isDown, gamepadController->actionDown);
-									UpdateButtonState(padstate.actionB.isDown, gamepadController->actionRight);
-									UpdateButtonState(padstate.actionX.isDown, gamepadController->actionLeft);
-									UpdateButtonState(padstate.actionY.isDown, gamepadController->actionUp);
+									UpdateDigitalButtonState(padstate.actionA.isDown, prevController->actionDown, currentController->actionDown);
+									UpdateDigitalButtonState(padstate.actionB.isDown, prevController->actionRight, currentController->actionRight);
+									UpdateDigitalButtonState(padstate.actionX.isDown, prevController->actionLeft, currentController->actionLeft);
+									UpdateDigitalButtonState(padstate.actionY.isDown, prevController->actionUp, currentController->actionUp);
 								} break;
 							}
 						} break;
@@ -160,11 +166,11 @@ int main(int argc, char **args) {
 								{
 									bool isDown = event.mouse.type == MouseEventType::ButtonDown;
 									if (event.mouse.mouseButton == MouseButtonType::Left) {
-										UpdateButtonState(isDown, currentInput->mouse.left);
+										UpdateKeyboardButtonState(isDown, currentInput->mouse.left);
 									} else if (event.mouse.mouseButton == MouseButtonType::Right) {
-										UpdateButtonState(isDown, currentInput->mouse.right);
+										UpdateKeyboardButtonState(isDown, currentInput->mouse.right);
 									} else if (event.mouse.mouseButton == MouseButtonType::Middle) {
-										UpdateButtonState(isDown, currentInput->mouse.middle);
+										UpdateKeyboardButtonState(isDown, currentInput->mouse.middle);
 									}
 								} break;
 
@@ -185,22 +191,22 @@ int main(int argc, char **args) {
 									switch (event.keyboard.mappedKey) {
 										case Key::Key_A:
 										case Key::Key_Left:
-											UpdateButtonState(isDown, currentKeyboardController->moveLeft);
+											UpdateKeyboardButtonState(isDown, currentKeyboardController->moveLeft);
 											break;
 										case Key::Key_D:
 										case Key::Key_Right:
-											UpdateButtonState(isDown, currentKeyboardController->moveRight);
+											UpdateKeyboardButtonState(isDown, currentKeyboardController->moveRight);
 											break;
 										case Key::Key_W:
 										case Key::Key_Up:
-											UpdateButtonState(isDown, currentKeyboardController->moveUp);
+											UpdateKeyboardButtonState(isDown, currentKeyboardController->moveUp);
 											break;
 										case Key::Key_S:
 										case Key::Key_Down:
-											UpdateButtonState(isDown, currentKeyboardController->moveDown);
+											UpdateKeyboardButtonState(isDown, currentKeyboardController->moveDown);
 											break;
 										case Key::Key_Space:
-											UpdateButtonState(isDown, currentKeyboardController->actionDown);
+											UpdateKeyboardButtonState(isDown, currentKeyboardController->actionDown);
 											break;
 									}
 								} break;
@@ -214,7 +220,7 @@ int main(int argc, char **args) {
 			b32 _tmpIsDown = GetAsyncKeyState(VK_LBUTTON) & (1 << 15) ? 1 : 0;
 			if (currentInput->mouse.left.isDown) {
 			}
-			
+
 
 			//
 			// Update
