@@ -58,40 +58,39 @@ namespace finalspace {
 			static constexpr f32 HalfGameWidth = GameWidth * 0.5f;
 			static constexpr f32 HalfGameHeight = GameHeight * 0.5f;
 
-			inline Vec2f TileToWorld(const s32 tileX, const s32 tileY) {
+			inline Vec2f TileToWorld(const s32 tileX, const s32 tileY) const {
 				const Vec2f tileMapExt = Vec2f((f32)TileCountForWidth * TileSize, (f32)TileCountForHeight * TileSize) * 0.5f;
 				Vec2f result = -tileMapExt +
 					Vec2f((f32)tileX, (f32)tileY) * TileSize +
 					TileSize * 0.5f;
 				return(result);
 			}
-			inline Vec2f TileToWorld(const Vec2i &tilePos) {
+			inline Vec2f TileToWorld(const Vec2i &tilePos) const {
 				Vec2f result = TileToWorld(tilePos.x, tilePos.y);
 				return(result);
 			}
 
-			inline Vec2i WorldToTile(const f32 worldX, const f32 worldY) {
+			inline Vec2i WorldToTile(const f32 worldX, const f32 worldY) const {
 				const Vec2f tileMapExt = Vec2f((f32)TileCountForWidth * TileSize, (f32)TileCountForHeight * TileSize) * 0.5f;
 				s32 tileX = (s32)((worldX + tileMapExt.w) / TileSize);
 				s32 tileY = (s32)((worldY + tileMapExt.h) / TileSize);
 				Vec2i result = Vec2i(tileX, tileY);
 				return(result);
 			}
-			inline Vec2i WorldToTile(const Vec2f &worldPos) {
+			inline Vec2i WorldToTile(const Vec2f &worldPos) const {
 				Vec2i result = WorldToTile(worldPos.x, worldPos.y);
 				return(result);
 			}
 
-			Vec2f gravity;
-			b32 isSinglePlayer;
+			Vec2f gravity = Vec2f(0, -4);
+			Vec2f mouseWorldPos = Vec2f();
+			b32 isSinglePlayer = true;
+			b32 isEditor = false;
+
 			std::vector<Entity> players;
 			std::vector<Wall> walls;
 			std::vector<ControlledPlayer> controlledPlayers;
-
 			Tile tiles[TileCountForWidth * TileCountForHeight];
-
-			b32 isEditor;
-			Vec2f mouseWorldPos;
 
 			// @Temporary: Remove this later when we have a proper asset system
 			Texture texture;
@@ -102,11 +101,12 @@ namespace finalspace {
 
 			void Init(Renderer &renderer);
 			void Release(Renderer &renderer);
-			void HandleControllerConnections(const finalspace::inputs::Input & input);
-			void HandlePlayerInput(const finalspace::inputs::Input & input);
-			void MovePlayers(const finalspace::inputs::Input & input);
+			void HandleControllerConnections(const finalspace::inputs::Input &input);
+			void HandlePlayerInput(const finalspace::inputs::Input &input);
+			void MovePlayers(const finalspace::inputs::Input &input);
 			void SetExternalForces();
-			void EditorUpdate(const finalspace::inputs::Input & input);
+			void EditorUpdate(const finalspace::inputs::Input &input);
+			void HandleInput(Renderer &renderer, const Input &input);
 			void Update(Renderer &renderer, const Input &input);
 			void Render(Renderer &renderer);
 		};

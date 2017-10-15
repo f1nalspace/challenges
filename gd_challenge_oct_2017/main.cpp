@@ -81,7 +81,8 @@ int main(int argc, char **args) {
 						currentKeyboardController->buttons[buttonIndex].isDown = prevKeyboardController->buttons[buttonIndex].isDown;
 					}
 					for (u32 buttonIndex = 0; buttonIndex < ArrayCount(currentMouse->buttons); ++buttonIndex) {
-						currentMouse->buttons[buttonIndex].isDown = prevMouse->buttons[buttonIndex].isDown;
+						currentMouse->buttons[buttonIndex] = prevMouse->buttons[buttonIndex];
+						currentMouse->buttons[buttonIndex].halfTransitionCount = 0;
 					}
 				}
 
@@ -189,6 +190,9 @@ int main(int argc, char **args) {
 								{
 									b32 isDown = (event.keyboard.type == KeyboardEventType::KeyDown) ? 1 : 0;
 									switch (event.keyboard.mappedKey) {
+										case Key::Key_F1:
+											UpdateKeyboardButtonState(isDown, currentKeyboardController->editorToggle);
+											break;
 										case Key::Key_A:
 										case Key::Key_Left:
 											UpdateKeyboardButtonState(isDown, currentKeyboardController->moveLeft);
@@ -217,15 +221,11 @@ int main(int argc, char **args) {
 				currentInput->deltaTime = targetDeltaTime;
 			}
 
-			b32 _tmpIsDown = GetAsyncKeyState(VK_LBUTTON) & (1 << 15) ? 1 : 0;
-			if (currentInput->mouse.left.isDown) {
-			}
-
-
 			//
-			// Update
+			// Tick & Update
 			//
 			{
+				game->HandleInput(*renderer, *currentInput);
 				frameAccumulator = Clamp(frameAccumulator, 0.0, 0.5);
 				while (frameAccumulator >= targetDeltaTime) {
 					game->Update(*renderer, *currentInput);

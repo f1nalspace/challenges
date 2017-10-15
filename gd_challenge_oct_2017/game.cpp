@@ -72,10 +72,6 @@ namespace finalspace {
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-			gravity = Vec2f(0, -4);
-			isSinglePlayer = true;
-			isEditor = false;
-
 			// @Temporary: Remove when have a proper asset system
 			constexpr char *imageFilePath = "brickwall.png";
 			texture = LoadTexture(renderer, imageFilePath);
@@ -291,6 +287,8 @@ namespace finalspace {
 			for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 				Entity &player = players[playerIndex];
 
+				printf("Acc: %f %f\n", player.acceleration.x, player.acceleration.y);
+
 				player.isGrounded = false;
 
 				// Movement equation:
@@ -439,7 +437,7 @@ namespace finalspace {
 			}
 		}
 
-		void Game::Update(Renderer &renderer, const Input &input) {
+		void Game::HandleInput(Renderer &renderer, const Input &input) {
 			renderer.Update(HalfGameWidth, HalfGameHeight, GameAspect);
 
 			// Update world mouse position
@@ -447,10 +445,19 @@ namespace finalspace {
 			const s32 mouseY = renderer.windowSize.h - 1 - input.mouse.pos.y;
 			mouseWorldPos = renderer.Unproject(Vec2i(mouseX, mouseY));
 
+			if (input.keyboard.editorToggle.WasPressed()) {
+				isEditor = !isEditor;
+			}
+
 			if (isEditor) {
 				EditorUpdate(input);
 			} else {
 				HandleControllerConnections(input);
+			}
+		}
+
+		void Game::Update(Renderer &renderer, const Input &input) {
+			if (!isEditor) {
 				SetExternalForces();
 				HandlePlayerInput(input);
 				MovePlayers(input);

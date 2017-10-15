@@ -16,7 +16,9 @@ namespace finalspace {
 			s32 halfTransitionCount = 0;
 
 			inline bool WasPressed() const {
-				bool result = ((halfTransitionCount > 1) || ((halfTransitionCount == 1) && (isDown)));
+				bool result =
+					((halfTransitionCount > 1) ||
+					((halfTransitionCount == 1) && (isDown)));
 				return(result);
 			}
 
@@ -24,14 +26,7 @@ namespace finalspace {
 			}
 		};
 
-		enum class ControllerState {
-			None,
-			Connected,
-			Disconnected,
-		};
-
 		struct Controller {
-			ControllerState state = ControllerState::None;
 			b32 isConnected = false;
 			b32 isAnalog = false;
 			Vec2f analogMovement = Vec2f();
@@ -45,8 +40,9 @@ namespace finalspace {
 					ButtonState actionDown;
 					ButtonState actionLeft;
 					ButtonState actionRight;
+					ButtonState editorToggle;
 				};
-				ButtonState buttons[8] = {};
+				ButtonState buttons[9] = {};
 			};
 
 			Controller() {
