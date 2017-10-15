@@ -174,7 +174,7 @@ namespace finalspace {
 		u32 Game::CreatePlayer(const u32 controllerIndex) {
 			Entity player = Entity();
 			player.position = Vec2f();
-			player.ext = Vec2f(0.5f, 0.5f);
+			player.ext = Vec2f(0.4f, 0.4f);
 			player.horizontalSpeed = 20.0f;
 			player.horizontalDrag = 13.0f;
 			player.canJump = true;
@@ -238,7 +238,7 @@ namespace finalspace {
 			}
 		}
 
-		void Game::HandlePlayerInput(const finalspace::inputs::Input & input)
+		void Game::ProcessPlayerInput(const finalspace::inputs::Input & input)
 		{
 			// Player forces
 			for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
@@ -284,10 +284,20 @@ namespace finalspace {
 
 		void Game::MovePlayers(const finalspace::inputs::Input & input)
 		{
+			// @BUG: Bug in the collision system, see the comment below 
+			/*
+			  	There is a bug in the collision system, which prevents the player from jumping while pushing to the right or left.
+				It has something todo with the ceiling or something.
+				Y movement is stopped, seems the players get stuck when jumping and moving at the same time.
+				     
+					P[ ]
+				  [ ]
+				  
+			*/	
+			
+
 			for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 				Entity &player = players[playerIndex];
-
-				printf("Acc: %f %f\n", player.acceleration.x, player.acceleration.y);
 
 				player.isGrounded = false;
 
@@ -437,6 +447,23 @@ namespace finalspace {
 			}
 		}
 
+		void Game::SwitchFromEditorToGame() {
+			walls.clear();
+
+			for (u32 y = 0; y < TileCountForHeight; ++y) {
+				for (u32 x = 0; x < TileCountForWidth; ++x) {
+					const Tile &tile = tiles[y * TileCountForWidth + x];
+					if (tile.isSolid) {
+						Vec2f tileWorldPos = TileToWorld(x, y);
+						Wall wall = {};
+						wall.position = tileWorldPos;
+						wall.ext = TileSize * 0.5f;
+						walls.emplace_back(wall);
+					}
+				}
+			}
+		}
+
 		void Game::HandleInput(Renderer &renderer, const Input &input) {
 			renderer.Update(HalfGameWidth, HalfGameHeight, GameAspect);
 
@@ -446,6 +473,9 @@ namespace finalspace {
 			mouseWorldPos = renderer.Unproject(Vec2i(mouseX, mouseY));
 
 			if (input.keyboard.editorToggle.WasPressed()) {
+				if (isEditor) {
+					SwitchFromEditorToGame();
+				}
 				isEditor = !isEditor;
 			}
 
@@ -459,7 +489,7 @@ namespace finalspace {
 		void Game::Update(Renderer &renderer, const Input &input) {
 			if (!isEditor) {
 				SetExternalForces();
-				HandlePlayerInput(input);
+				ProcessPlayerInput(input);
 				MovePlayers(input);
 			}
 		}

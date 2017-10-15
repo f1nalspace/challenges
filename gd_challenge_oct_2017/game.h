@@ -99,10 +99,12 @@ namespace finalspace {
 
 			s32 FindControlledPlayerIndex(const u32 controllerIndex);
 
+			void SwitchFromEditorToGame();
+
 			void Init(Renderer &renderer);
 			void Release(Renderer &renderer);
 			void HandleControllerConnections(const finalspace::inputs::Input &input);
-			void HandlePlayerInput(const finalspace::inputs::Input &input);
+			void ProcessPlayerInput(const finalspace::inputs::Input &input);
 			void MovePlayers(const finalspace::inputs::Input &input);
 			void SetExternalForces();
 			void EditorUpdate(const finalspace::inputs::Input &input);
