@@ -77,9 +77,14 @@ namespace finalspace {
 				Vec2i result = Vec2i(tileX, tileY);
 				return(result);
 			}
+
 			inline Vec2i WorldToTile(const Vec2f &worldPos) const {
 				Vec2i result = WorldToTile(worldPos.x, worldPos.y);
 				return(result);
+			}
+
+			inline void SetTile(const u32 x, const u32 y, const bool value) {
+				tiles[y * TileCountForWidth + x].isSolid = value;
 			}
 
 			Vec2f gravity = Vec2f(0, -4);
@@ -99,7 +104,7 @@ namespace finalspace {
 
 			s32 FindControlledPlayerIndex(const u32 controllerIndex);
 
-			void SwitchFromEditorToGame();
+			void CreateWallsFromTiles();
 
 			void Init(Renderer &renderer);
 			void Release(Renderer &renderer);

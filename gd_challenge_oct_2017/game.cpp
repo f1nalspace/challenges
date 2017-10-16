@@ -29,12 +29,8 @@ namespace finalspace {
 			Vec2f normal;
 		};
 
-		void Game::Release(Renderer &renderer) {
-			controlledPlayers.clear();
-			players.clear();
-			walls.clear();
-
-			// @Temporary: Remove this later, the renderer should take care of that automatically
+		// @Temporary: I dont want to unload textures manually, this should happen automatically
+		static void ReleaseTexture(Renderer &renderer, Texture &texture) {
 			GLuint textureId = PointerToValue<GLuint>(texture.handle);
 			if (textureId) {
 				glDeleteTextures(1, &textureId);
@@ -67,6 +63,16 @@ namespace finalspace {
 			return(result);
 		}
 
+		void Game::Release(Renderer &renderer) {
+			controlledPlayers.clear();
+			players.clear();
+			walls.clear();
+
+			// @Temporary: Remove this later, the renderer should take care of that automatically
+			ReleaseTexture(renderer, texture);
+		}
+
+
 		void Game::Init(Renderer &renderer) {
 			fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
 
@@ -78,6 +84,15 @@ namespace finalspace {
 
 			// @Temporary: Fixed level for now
 			{
+				s32 centerX = TileCountForWidth / 2;
+				s32 centerY = TileCountForHeight / 2 - 2;
+
+				SetTile(centerX, centerY, true);
+				SetTile(centerX + 1, centerY + 1, true);
+
+				CreateWallsFromTiles();
+
+			#if 0
 				constexpr float WallDepth = TileSize;
 				Wall wall;
 
@@ -166,10 +181,9 @@ namespace finalspace {
 				wall.position = Vec2f(HalfGameWidth - wall.ext.w - WallDepth, 3.0f);
 				wall.isPlatform = true;
 				walls.emplace_back(wall);
+			#endif
 			}
 		}
-
-
 
 		u32 Game::CreatePlayer(const u32 controllerIndex) {
 			Entity player = Entity();
@@ -196,7 +210,7 @@ namespace finalspace {
 			return(result);
 		}
 
-		void Game::HandleControllerConnections(const finalspace::inputs::Input & input)
+		void Game::HandleControllerConnections(const finalspace::inputs::Input &input)
 		{
 			for (u32 controllerIndex = 0; controllerIndex < ArrayCount(input.controllers); ++controllerIndex) {
 				const Controller &testController = input.controllers[controllerIndex];
@@ -238,7 +252,7 @@ namespace finalspace {
 			}
 		}
 
-		void Game::ProcessPlayerInput(const finalspace::inputs::Input & input)
+		void Game::ProcessPlayerInput(const finalspace::inputs::Input &input)
 		{
 			// Player forces
 			for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
@@ -274,7 +288,7 @@ namespace finalspace {
 
 				// Jump
 				if (playerController.actionDown.isDown) {
-					if (wasGrounded && player.canJump && player.jumpCount == 0) {
+ 					if (wasGrounded && player.canJump && player.jumpCount == 0) {
 						player.acceleration.y += 1.0f * player.jumpPower;
 						++player.jumpCount;
 					}
@@ -282,20 +296,8 @@ namespace finalspace {
 			}
 		}
 
-		void Game::MovePlayers(const finalspace::inputs::Input & input)
+		void Game::MovePlayers(const finalspace::inputs::Input &input)
 		{
-			// @BUG: Bug in the collision system, see the comment below 
-			/*
-			  	There is a bug in the collision system, which prevents the player from jumping while pushing to the right or left.
-				It has something todo with the ceiling or something.
-				Y movement is stopped, seems the players get stuck when jumping and moving at the same time.
-				     
-					P[ ]
-				  [ ]
-				  
-			*/	
-			
-
 			for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 				Entity &player = players[playerIndex];
 
@@ -398,8 +400,8 @@ namespace finalspace {
 							player.velocity += -(1 + restitution) * Dot(player.velocity, wallNormal) * wallNormal;
 
 							// Update grounded states
-							player.isGrounded = Dot(wallNormal, Vec2f::Up) > 0;
-							if (player.isGrounded) {
+							if (Dot(wallNormal, Vec2f::Up) > 0) {
+								player.isGrounded = true;
 								player.jumpCount = 0;
 							}
 						}
@@ -423,7 +425,7 @@ namespace finalspace {
 			}
 		}
 
-		void Game::EditorUpdate(const finalspace::inputs::Input & input)
+		void Game::EditorUpdate(const finalspace::inputs::Input &input)
 		{
 			//
 			// Editor input
@@ -447,9 +449,8 @@ namespace finalspace {
 			}
 		}
 
-		void Game::SwitchFromEditorToGame() {
+		void Game::CreateWallsFromTiles() {
 			walls.clear();
-
 			for (u32 y = 0; y < TileCountForHeight; ++y) {
 				for (u32 x = 0; x < TileCountForWidth; ++x) {
 					const Tile &tile = tiles[y * TileCountForWidth + x];
@@ -474,7 +475,7 @@ namespace finalspace {
 
 			if (input.keyboard.editorToggle.WasPressed()) {
 				if (isEditor) {
-					SwitchFromEditorToGame();
+					CreateWallsFromTiles();
 				}
 				isEditor = !isEditor;
 			}
