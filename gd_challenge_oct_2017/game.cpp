@@ -5,14 +5,18 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "final_utils.h"
-#include "final_opengl.h"
+#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS 1
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
-using namespace finalspace::renderer;
-using namespace finalspace::utils;
+#include "final_utils.h"
+#include "final_renderer.h"
+
+using namespace fpl;
+using namespace fpl::window;
 
 namespace finalspace {
-	namespace games {
+	inline namespace games {
 
 		struct WallSide {
 			f32 plane;
@@ -31,15 +35,14 @@ namespace finalspace {
 
 		// @Temporary: I dont want to unload textures manually, this should happen automatically
 		static void ReleaseTexture(Renderer &renderer, Texture &texture) {
-			GLuint textureId = PointerToValue<GLuint>(texture.handle);
+			GLuint textureId = utils::PointerToValue<GLuint>(texture.handle);
 			if (textureId) {
 				glDeleteTextures(1, &textureId);
 				texture = {};
 			}
 		}
 
-		// @Temporary: I dont want to load textures manually, this should happen automatically when i want to access the texture
-		// Think this trough, but for now we load it manually.
+		// @Temporary: I dont want to load textures manually, this should happen automatically when i want to access the texture (Think this trough, but for now we load it manually.)
 		static Texture LoadTexture(Renderer &renderer, const char *imageFilePath) {
 			Texture result = {};
 			fpl::files::FileHandle imageFileHandle = fpl::files::OpenBinaryFile(imageFilePath);
@@ -58,12 +61,12 @@ namespace finalspace {
 						stbi_image_free(imageData);
 					}
 				}
-				fpl::files::CloseFile2(imageFileHandle);
+				fpl::files::CloseFile(imageFileHandle);
 			}
 			return(result);
 		}
 
-		void Game::Release(Renderer &renderer) {
+		void Game::Release() {
 			controlledPlayers.clear();
 			players.clear();
 			walls.clear();
@@ -72,8 +75,7 @@ namespace finalspace {
 			ReleaseTexture(renderer, texture);
 		}
 
-
-		void Game::Init(Renderer &renderer) {
+		void Game::Init() {
 			fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -210,9 +212,8 @@ namespace finalspace {
 			return(result);
 		}
 
-		void Game::HandleControllerConnections(const finalspace::inputs::Input &input)
-		{
-			for (u32 controllerIndex = 0; controllerIndex < ArrayCount(input.controllers); ++controllerIndex) {
+		void Game::HandleControllerConnections(const Input &input) {
+			for (u32 controllerIndex = 0; controllerIndex < utils::ArrayCount(input.controllers); ++controllerIndex) {
 				const Controller &testController = input.controllers[controllerIndex];
 				if (testController.isConnected) {
 					// @NOTE: Connected controller
@@ -252,8 +253,7 @@ namespace finalspace {
 			}
 		}
 
-		void Game::ProcessPlayerInput(const finalspace::inputs::Input &input)
-		{
+		void Game::ProcessPlayerInput(const Input &input) {
 			// Player forces
 			for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
 				u32 playerIndex = controlledPlayers[controlledPlayerIndex].playerIndex;
@@ -266,7 +266,7 @@ namespace finalspace {
 				if (playerIndex >= (players.size())) continue;
 
 				assert(playerIndex < players.size());
-				assert(controllerIndex < ArrayCount(input.controllers));
+				assert(controllerIndex < utils::ArrayCount(input.controllers));
 
 				Entity &player = players[playerIndex];
 				const Controller &playerController = input.controllers[controllerIndex];
@@ -288,7 +288,7 @@ namespace finalspace {
 
 				// Jump
 				if (playerController.actionDown.isDown) {
- 					if (wasGrounded && player.canJump && player.jumpCount == 0) {
+					if (wasGrounded && player.canJump && player.jumpCount == 0) {
 						player.acceleration.y += 1.0f * player.jumpPower;
 						++player.jumpCount;
 					}
@@ -296,8 +296,7 @@ namespace finalspace {
 			}
 		}
 
-		void Game::MovePlayers(const finalspace::inputs::Input &input)
-		{
+		void Game::MovePlayers(const Input &input) {
 			for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 				Entity &player = players[playerIndex];
 
@@ -410,8 +409,7 @@ namespace finalspace {
 			}
 		}
 
-		void Game::SetExternalForces()
-		{
+		void Game::SetExternalForces() {
 			// External forces (Gravity, drag, etc.)
 			for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 				Entity &player = players[playerIndex];
@@ -425,28 +423,103 @@ namespace finalspace {
 			}
 		}
 
-		void Game::EditorUpdate(const finalspace::inputs::Input &input)
-		{
-			//
-			// Editor input
-			//
-			const Vec2f tileExt = Vec2f(TileSize) * 0.5f;
-			const Vec2i mouseTile = WorldToTile(mouseWorldPos);
+		void Game::EditorUpdate(const Input &input) {
+			auto io = ImGui::GetIO();
+			auto ctx = ImGui::GetCurrentContext();
+			auto editorWindowSize = ImVec2(io.DisplaySize.x, io.DisplaySize.y);
 
-			const bool isInsideTilemap =
-				(mouseTile.x >= 0 && mouseTile.x < TileCountForWidth) &&
-				(mouseTile.y >= 0 && mouseTile.y < TileCountForHeight);
+			ImGui::SetNextWindowSize(editorWindowSize, ImGuiSetCond_Always);
+			ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_FirstUseEver);
+			const char *mapName = activeEditorFilePath.empty() ? "Unnamed map" : activeEditorFilePath.c_str();
 
-			if (isInsideTilemap) {
-				const u32 tileIndex = mouseTile.y * TileCountForWidth + mouseTile.x;
-				assert(tileIndex < ArrayCount(tiles));
-				if (input.mouse.left.isDown) {
-					tiles[tileIndex].isSolid = true;
+			ImGui::Begin(mapName, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar);
+
+			// Menu
+			bool menuOpen = false;
+			if (ImGui::BeginMenuBar()) {
+				menuOpen = true;
+				if (ImGui::BeginMenu("File")) {
+					if (ImGui::MenuItem("New map")) {
+						ClearLevel();
+					}
+					if (ImGui::MenuItem("Load map...")) {
+					}
+					if (ImGui::MenuItem("Save map")) {
+						bool showDialog = activeEditorFilePath.empty();
+						UISaveMap(showDialog);
+					}
+					if (ImGui::MenuItem("Save map as...")) {
+						UISaveMap(true);
+					}
+					if (ImGui::MenuItem("Exit")) {
+						exitRequested = true;
+					}
+					ImGui::EndMenu();
 				}
-				if (input.mouse.right.isDown) {
-					tiles[tileIndex].isSolid = false;
+				ImGui::EndMenuBar();
+			}
+
+			// Canvas area
+			auto maxRegion = ImGui::GetWindowContentRegionMax();
+			auto minRegion = ImGui::GetWindowContentRegionMin();
+			auto regionSize = ImVec2(maxRegion.x - minRegion.x, maxRegion.y - minRegion.y);
+			const ImVec2 startCursorPos = ImGui::GetCursorScreenPos();
+
+			RenderArea canvasArea = {};
+			UpdateRenderArea(canvasArea, regionSize.x, regionSize.y, HalfGameWidth, HalfGameHeight, GameAspect);
+			const f32 canvasTileSize = TileSize * canvasArea.scale;
+
+			ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+			const ImVec2 canvasViewportStart = ImVec2(startCursorPos.x + canvasArea.viewportOffset.x, startCursorPos.y + canvasArea.viewportOffset.y);
+			const ImVec2 canvasViewportEnd = ImVec2(canvasViewportStart.x + canvasArea.viewportSize.w, canvasViewportStart.y + canvasArea.viewportSize.h);
+			draw_list->AddRect(canvasViewportStart, canvasViewportEnd, ImColor(255, 255, 0));
+
+			// Mouse hover and click actions
+			if (ImGui::IsWindowFocused() && ImGui::IsMouseHoveringRect(canvasViewportStart, canvasViewportEnd)) {
+				auto mp = ImGui::GetMousePos();
+				s32 hoverTileX = (s32)((mp.x - canvasViewportStart.x) / canvasTileSize);
+				s32 hoverTileY = (s32)((mp.y - canvasViewportStart.y) / canvasTileSize);
+				f32 tx = canvasViewportStart.x + hoverTileX * canvasTileSize;
+				f32 ty = canvasViewportStart.y + hoverTileY * canvasTileSize;
+				draw_list->AddRect(ImVec2(tx, ty), ImVec2(tx + canvasTileSize, ty + canvasTileSize), ImColor(255, 255, 0));
+
+				u32 invertHoverTileY = (TileCountForHeight - 1 - hoverTileY);
+				if (ImGui::IsMouseDown(0)) {
+					SetTile(hoverTileX, invertHoverTileY, true);
+				} else if (ImGui::IsMouseDown(2)) {
+					SetTile(hoverTileX, invertHoverTileY, false);
 				}
 			}
+
+			// Draw tiles
+			for (u32 y = 0; y < TileCountForHeight; ++y) {
+				u32 tileY = (TileCountForHeight - 1 - y);
+				for (u32 x = 0; x < TileCountForWidth; ++x) {
+					const Tile &tile = tiles[tileY * TileCountForWidth + x];
+					if (tile.isSolid) {
+						f32 tx = canvasViewportStart.x + x * canvasTileSize;
+						f32 ty = canvasViewportStart.y + y * canvasTileSize;
+						draw_list->AddRectFilled(ImVec2(tx, ty), ImVec2(tx + canvasTileSize, ty + canvasTileSize), ImColor(255, 0, 0));
+					}
+				}
+			}
+
+			ImGui::End();
+		}
+
+		void Game::ClearLevel() {
+			for (u32 tileIndex = 0; tileIndex < tiles.size(); ++tileIndex)
+				tiles[tileIndex] = {};
+			players.clear();
+			walls.clear();
+			controlledPlayers.clear();
+		}
+		void Game::LoadLevel(const char *filePath) {
+			ClearLevel();
+		}
+		void Game::SaveLevel(const char *filePath) {
+
 		}
 
 		void Game::CreateWallsFromTiles() {
@@ -465,7 +538,23 @@ namespace finalspace {
 			}
 		}
 
-		void Game::HandleInput(Renderer &renderer, const Input &input) {
+		void Game::UISaveMap(const bool withDialog) {
+			if (withDialog) {
+				const char *popupId = "Save map";
+				ImGui::OpenPopup(popupId);
+				if (ImGui::BeginPopup(popupId)) {
+					ImGui::Text("Aquarium");
+					ImGui::Separator();
+					ImGui::EndPopup();
+				}
+			}
+		}
+
+		void Game::HandleInput(const Input &input) {
+			if (isEditor) {
+				EditorUpdate(input);
+			}
+
 			renderer.Update(HalfGameWidth, HalfGameHeight, GameAspect);
 
 			// Update world mouse position
@@ -480,14 +569,12 @@ namespace finalspace {
 				isEditor = !isEditor;
 			}
 
-			if (isEditor) {
-				EditorUpdate(input);
-			} else {
+			if (!isEditor) {
 				HandleControllerConnections(input);
 			}
 		}
 
-		void Game::Update(Renderer &renderer, const Input &input) {
+		void Game::Update(const Input &input) {
 			if (!isEditor) {
 				SetExternalForces();
 				ProcessPlayerInput(input);
@@ -495,23 +582,12 @@ namespace finalspace {
 			}
 		}
 
-		void Game::Render(Renderer &renderer) {
+		void Game::Render() {
 			renderer.BeginFrame();
 
 			const Vec2f tileExt = Vec2f(TileSize * 0.5f);
 
-			if (isEditor) {
-				// Draw tiles
-				for (u32 y = 0; y < TileCountForHeight; ++y) {
-					for (u32 x = 0; x < TileCountForWidth; ++x) {
-						const Tile &tile = tiles[y * TileCountForWidth + x];
-						if (tile.isSolid) {
-							Vec2f tileWorldPos = TileToWorld(x, y);
-							renderer.DrawRectangle(tileWorldPos, tileExt, Vec4f::Yellow);
-						}
-					}
-				}
-			} else {
+			if (!isEditor) {
 				// Draw walls
 				for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
 					const Wall &wall = walls[wallIndex];
@@ -531,14 +607,13 @@ namespace finalspace {
 				renderer.DrawRectangle(player.position, player.ext, playerColor);
 			}
 
-			// Draw mouse tile
-			if (isEditor) {
-				Vec2i mouseTile = WorldToTile(mouseWorldPos);
-				Vec2f tileWorldPos = TileToWorld(mouseTile);
-				renderer.DrawRectangle(tileWorldPos, tileExt, Vec4f::White, false);
-			}
-
 			renderer.EndFrame();
+		}
+
+		Game::Game(Renderer &renderer) : BaseGame(renderer) {
+		}
+
+		Game::~Game() {
 		}
 	}
 }

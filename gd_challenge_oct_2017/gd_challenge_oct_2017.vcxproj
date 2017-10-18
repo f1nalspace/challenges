@@ -164,22 +164,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\dependencies\include\imgui\imgui.cpp" />
+    <ClCompile Include="..\dependencies\include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\dependencies\include\imgui\imgui_draw.cpp" />
     <ClCompile Include="final_maths.cpp" />
     <ClCompile Include="final_opengl.cpp" />
-    <ClCompile Include="final_tiletrace.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dependencies\include\final_platform_layer.hpp" />
-    <ClInclude Include="dependencies\include\stb_easy_font.h" />
-    <ClInclude Include="dependencies\include\stb_image.h" />
-    <ClInclude Include="dependencies\include\stb_truetype.h" />
+    <ClInclude Include="..\dependencies\include\final_platform_layer.hpp" />
+    <ClInclude Include="..\dependencies\include\final_tiletrace.hpp" />
+    <ClInclude Include="..\dependencies\include\imgui\imconfig.h" />
+    <ClInclude Include="..\dependencies\include\imgui\imgui.h" />
+    <ClInclude Include="..\dependencies\include\imgui\imgui_internal.h" />
+    <ClInclude Include="..\dependencies\include\stb_image.h" />
+    <ClInclude Include="..\dependencies\include\stb_truetype.h" />
     <ClInclude Include="final_input.h" />
     <ClInclude Include="final_maths.h" />
     <ClInclude Include="final_opengl.h" />
-    <ClInclude Include="final_render.h" />
-    <ClInclude Include="final_tiletrace.h" />
+    <ClInclude Include="final_renderer.h" />
     <ClInclude Include="final_types.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="final_utils.h" />

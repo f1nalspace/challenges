@@ -2,31 +2,26 @@
 
 #include "final_types.h"
 
-#include <final_platform_layer.hpp>
-
 #include <assert.h>
 #include <math.h>
 
-#define MATH_USE_SSE 0
+#define MATH_ENABLE_SIMD 0
 
-#if MATH_USE_SSE
+#if MATH_ENABLE_SIMD
 #	include <xmmintrin.h>
 #	include <intrin.h>
 #endif
 
 namespace finalspace {
-	namespace maths {
+	inline namespace maths {
 		//
 		// Forward declarations
 		//
 		union Vec2f;
 		Vec2f Cross(const f32 s, const Vec2f &a);
 		Vec2f Cross(const Vec2f &a, const f32 s);
-		Vec2f Cross(const Vec2f &a, const f32 s);
 
-		//
-		// Vec2i (2D signed 32-bit integer)
-		//
+		//! Vec2i (2D signed 32-bit integer)
 		union Vec2i {
 			struct {
 				s32 x;
@@ -964,10 +959,11 @@ namespace finalspace {
 		//
 		// Mat4f operators
 		//
-		// http://stackoverflow.com/questions/18499971/efficient-4x4-matrix-multiplication-c-vs-assembly
+	
+		// @NOTE: Fastest SIMD mat4 mult: http://stackoverflow.com/questions/18499971/efficient-4x4-matrix-multiplication-c-vs-assembly
 		inline Mat4f operator *(const Mat4f &a, const Mat4f &b) {
 			Mat4f result = Mat4f(1.0f);
-		#if MATH_USE_SSE
+		#if MATH_ENABLE_SIMD
 			__m128 simd128x4[4];
 			simd128x4[0] = _mm_load_ps(&a.m[0]);
 			simd128x4[1] = _mm_load_ps(&a.m[4]);

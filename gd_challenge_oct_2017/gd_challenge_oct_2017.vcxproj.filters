@@ -5,33 +5,52 @@
     <ClCompile Include="game.cpp" />
     <ClCompile Include="final_maths.cpp" />
     <ClCompile Include="final_opengl.cpp" />
-    <ClCompile Include="final_tiletrace.cpp" />
+    <ClCompile Include="..\dependencies\include\imgui\imgui.cpp">
+      <Filter>dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\include\imgui\imgui_draw.cpp">
+      <Filter>dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\include\imgui\imgui_demo.cpp">
+      <Filter>dependencies\imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="final_types.h" />
-    <ClInclude Include="dependencies\include\final_platform_layer.hpp">
-      <Filter>dependencies</Filter>
-    </ClInclude>
     <ClInclude Include="final_maths.h" />
     <ClInclude Include="final_input.h" />
     <ClInclude Include="final_utils.h" />
     <ClInclude Include="game.h" />
-    <ClInclude Include="final_render.h" />
-    <ClInclude Include="dependencies\include\stb_easy_font.h">
-      <Filter>dependencies</Filter>
-    </ClInclude>
-    <ClInclude Include="dependencies\include\stb_image.h">
-      <Filter>dependencies</Filter>
-    </ClInclude>
-    <ClInclude Include="dependencies\include\stb_truetype.h">
-      <Filter>dependencies</Filter>
-    </ClInclude>
     <ClInclude Include="final_opengl.h" />
-    <ClInclude Include="final_tiletrace.h" />
+    <ClInclude Include="final_renderer.h" />
+    <ClInclude Include="..\dependencies\include\imgui\imconfig.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\imgui\imgui.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\imgui\imgui_internal.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\final_platform_layer.hpp">
+      <Filter>dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\final_tiletrace.hpp">
+      <Filter>dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\stb_image.h">
+      <Filter>dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\stb_truetype.h">
+      <Filter>dependencies</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dependencies">
-      <UniqueIdentifier>{87dbb13c-7542-4b73-bb9a-ce6e180666c2}</UniqueIdentifier>
+      <UniqueIdentifier>{3480bc80-2f9d-4b3f-ace9-5ec805a73f9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dependencies\imgui">
+      <UniqueIdentifier>{8a23de96-c810-41fb-bb33-fc13df24dde5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

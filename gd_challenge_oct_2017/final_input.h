@@ -4,12 +4,8 @@
 #include "final_maths.h"
 #include "final_utils.h"
 
-using namespace finalspace::maths;
-using namespace finalspace::utils;
-
 namespace finalspace {
-
-	namespace inputs {
+	inline namespace inputs {
 
 		struct ButtonState {
 			b32 isDown = false;

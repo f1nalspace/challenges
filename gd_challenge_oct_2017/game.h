@@ -1,19 +1,20 @@
 #pragma once
 
 #include <vector>
+#include <memory>
+#include <string>
+
+// @TODO: Remove this!
+#include <final_platform_layer.hpp>
 
 #include "final_types.h"
 #include "final_maths.h"
 #include "final_input.h"
-#include "final_render.h"
-
-using namespace finalspace::inputs;
-using namespace finalspace::maths;
-using namespace finalspace::renderer;
+#include "final_renderer.h"
 
 namespace finalspace {
 
-	namespace games {
+	inline namespace games {
 
 		enum class EntityType {
 			Player,
@@ -34,21 +35,43 @@ namespace finalspace {
 		};
 
 		struct Wall {
-			Vec2f position;
-			Vec2f ext;
-			b32 isPlatform;
+			Vec2f position = {};
+			Vec2f ext = {};
+			b32 isPlatform = false;
 		};
 
 		struct ControlledPlayer {
-			u32 playerIndex;
-			u32 controllerIndex;
+			u32 playerIndex = 0;
+			u32 controllerIndex = 0;
 		};
 
 		struct Tile {
-			b32 isSolid;
+			b32 isSolid = false;
 		};
 
-		struct Game {
+		class BaseGame {
+		protected:
+			Renderer &renderer;
+			bool exitRequested;
+		public:
+			BaseGame(Renderer &renderer) : 
+				renderer(renderer),
+				exitRequested(false) {
+			}
+			virtual void Init() = 0;
+			virtual void Release() = 0;
+			virtual void HandleInput(const Input &input) = 0;
+			virtual void Update(const Input &input) = 0;
+			virtual void Render() = 0;
+			virtual ~BaseGame() {
+			}
+			inline bool IsExitRequested() const {
+				return exitRequested;
+			}
+		};
+
+		struct Game : BaseGame {
+		protected:
 			static constexpr f32 TileSize = 0.5f;
 			static constexpr u32 TileCountForWidth = 40;
 			static constexpr u32 TileCountForHeight = 22;
@@ -84,38 +107,50 @@ namespace finalspace {
 			}
 
 			inline void SetTile(const u32 x, const u32 y, const bool value) {
-				tiles[y * TileCountForWidth + x].isSolid = value;
+				u32 index = y * TileCountForWidth + x;
+				assert(index < tiles.size());
+				tiles[index].isSolid = value;
 			}
 
 			Vec2f gravity = Vec2f(0, -4);
 			Vec2f mouseWorldPos = Vec2f();
 			b32 isSinglePlayer = true;
-			b32 isEditor = false;
 
-			std::vector<Entity> players;
-			std::vector<Wall> walls;
-			std::vector<ControlledPlayer> controlledPlayers;
-			Tile tiles[TileCountForWidth * TileCountForHeight];
+			b32 isEditor = false;
+			std::string activeEditorFilePath = std::string("");
+
+			std::vector<Entity> players = std::vector<Entity>();
+			std::vector<Wall> walls = std::vector<Wall>();
+			std::vector<ControlledPlayer> controlledPlayers = std::vector<ControlledPlayer>();
+			std::vector<Tile> tiles = std::vector<Tile>(TileCountForWidth * TileCountForHeight);
 
 			// @Temporary: Remove this later when we have a proper asset system
-			Texture texture;
+			Texture texture = {};
 
 			u32 CreatePlayer(const u32 controllerIndex);
 
 			s32 FindControlledPlayerIndex(const u32 controllerIndex);
 
+			void UISaveMap(const bool withDialog);
+
+			void ClearLevel();
+			void LoadLevel(const char *filePath);
+			void SaveLevel(const char *filePath);
 			void CreateWallsFromTiles();
 
-			void Init(Renderer &renderer);
-			void Release(Renderer &renderer);
-			void HandleControllerConnections(const finalspace::inputs::Input &input);
-			void ProcessPlayerInput(const finalspace::inputs::Input &input);
-			void MovePlayers(const finalspace::inputs::Input &input);
+			void HandleControllerConnections(const Input &input);
+			void ProcessPlayerInput(const Input &input);
+			void MovePlayers(const Input &input);
 			void SetExternalForces();
-			void EditorUpdate(const finalspace::inputs::Input &input);
-			void HandleInput(Renderer &renderer, const Input &input);
-			void Update(Renderer &renderer, const Input &input);
-			void Render(Renderer &renderer);
+			void EditorUpdate(const Input &input);
+		public:
+			Game(Renderer &renderer);
+			~Game() override;
+			void Init() override;
+			void Release() override;
+			void HandleInput(const Input &input) override;
+			void Update(const Input &input) override;
+			void Render() override;
 		};
 
 	};
