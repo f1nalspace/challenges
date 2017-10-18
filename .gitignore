@@ -36,3 +36,5 @@
 # Paths
 /bin
 /.vs
+/engine/immediates/x64-Debug
+/gd_challenge_oct_2017/immediates/x64-Debug

@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="final_input.h" />
+    <ClInclude Include="final_maths.h" />
+    <ClInclude Include="final_opengl.h" />
+    <ClInclude Include="final_render.h" />
+    <ClInclude Include="final_renderer.h" />
+    <ClInclude Include="final_tiletrace.h" />
+    <ClInclude Include="final_types.h" />
+    <ClInclude Include="final_utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="final_maths.cpp" />
+    <ClCompile Include="final_opengl.cpp" />
+    <ClCompile Include="final_tiletrace.cpp" />
+  </ItemGroup>
+</Project>
