@@ -428,8 +428,8 @@ namespace finalspace {
 			auto ctx = ImGui::GetCurrentContext();
 			auto editorWindowSize = ImVec2(io.DisplaySize.x, io.DisplaySize.y);
 
-			ImGui::SetNextWindowSize(editorWindowSize, ImGuiSetCond_Always);
-			ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_FirstUseEver);
+			ImGui::SetNextWindowSize(editorWindowSize, ImGuiCond_Always);
+			ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
 			const char *mapName = activeEditorFilePath.empty() ? "Unnamed map" : activeEditorFilePath.c_str();
 
 			ImGui::Begin(mapName, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar);
