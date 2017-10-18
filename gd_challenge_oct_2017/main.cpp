@@ -275,6 +275,13 @@ static void ProcessEvents(Input *currentInput, Input *prevInput, bool &isWindowA
 			case EventType::Keyboard:
 			{
 				switch (event.keyboard.type) {
+					case KeyboardEventType::Char:
+					{
+						ImGuiIO& io = ImGui::GetIO();
+						if (event.keyboard.keyCode > 0 && event.keyboard.keyCode < 0x10000) {
+							io.AddInputCharacter(ImWchar(event.keyboard.keyCode));
+						}
+					} break;
 					case KeyboardEventType::KeyDown:
 					case KeyboardEventType::KeyUp:
 					{

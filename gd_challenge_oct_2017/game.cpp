@@ -94,7 +94,7 @@ namespace finalspace {
 
 				CreateWallsFromTiles();
 
-			#if 0
+#if 0
 				constexpr float WallDepth = TileSize;
 				Wall wall;
 
@@ -183,7 +183,7 @@ namespace finalspace {
 				wall.position = Vec2f(HalfGameWidth - wall.ext.w - WallDepth, 3.0f);
 				wall.isPlatform = true;
 				walls.emplace_back(wall);
-			#endif
+#endif
 			}
 		}
 
@@ -423,7 +423,7 @@ namespace finalspace {
 			}
 		}
 
-		void Game::EditorUpdate(const Input &input) {
+		void Game::EditorUpdate() {
 			auto io = ImGui::GetIO();
 			auto ctx = ImGui::GetCurrentContext();
 			auto editorWindowSize = ImVec2(io.DisplaySize.x, io.DisplaySize.y);
@@ -435,21 +435,24 @@ namespace finalspace {
 			ImGui::Begin(mapName, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar);
 
 			// Menu
-			bool menuOpen = false;
 			if (ImGui::BeginMenuBar()) {
-				menuOpen = true;
 				if (ImGui::BeginMenu("File")) {
 					if (ImGui::MenuItem("New map")) {
 						ClearLevel();
 					}
 					if (ImGui::MenuItem("Load map...")) {
+						showOpenDialog = true;
+						firstTimeOpenDialog = true;
 					}
 					if (ImGui::MenuItem("Save map")) {
-						bool showDialog = activeEditorFilePath.empty();
-						UISaveMap(showDialog);
+						showSaveDialog = activeEditorFilePath.empty();
+						if (!showSaveDialog)
+							SaveMap(activeEditorFilePath.c_str());
+						else
+							firstTimeSaveDialog = true;
 					}
 					if (ImGui::MenuItem("Save map as...")) {
-						UISaveMap(true);
+						showSaveDialog = firstTimeSaveDialog = true;
 					}
 					if (ImGui::MenuItem("Exit")) {
 						exitRequested = true;
@@ -475,6 +478,19 @@ namespace finalspace {
 			const ImVec2 canvasViewportEnd = ImVec2(canvasViewportStart.x + canvasArea.viewportSize.w, canvasViewportStart.y + canvasArea.viewportSize.h);
 			draw_list->AddRect(canvasViewportStart, canvasViewportEnd, ImColor(255, 255, 0));
 
+			// Draw tiles
+			for (u32 y = 0; y < TileCountForHeight; ++y) {
+				u32 tileY = (TileCountForHeight - 1 - y);
+				for (u32 x = 0; x < TileCountForWidth; ++x) {
+					const Tile &tile = tiles[tileY * TileCountForWidth + x];
+					if (tile.isSolid) {
+						f32 tx = canvasViewportStart.x + x * canvasTileSize;
+						f32 ty = canvasViewportStart.y + y * canvasTileSize;
+						draw_list->AddRectFilled(ImVec2(tx, ty), ImVec2(tx + canvasTileSize, ty + canvasTileSize), ImColor(255, 0, 0));
+					}
+				}
+			}
+
 			// Mouse hover and click actions
 			if (ImGui::IsWindowFocused() && ImGui::IsMouseHoveringRect(canvasViewportStart, canvasViewportEnd)) {
 				auto mp = ImGui::GetMousePos();
@@ -492,20 +508,81 @@ namespace finalspace {
 				}
 			}
 
-			// Draw tiles
-			for (u32 y = 0; y < TileCountForHeight; ++y) {
-				u32 tileY = (TileCountForHeight - 1 - y);
-				for (u32 x = 0; x < TileCountForWidth; ++x) {
-					const Tile &tile = tiles[tileY * TileCountForWidth + x];
-					if (tile.isSolid) {
-						f32 tx = canvasViewportStart.x + x * canvasTileSize;
-						f32 ty = canvasViewportStart.y + y * canvasTileSize;
-						draw_list->AddRectFilled(ImVec2(tx, ty), ImVec2(tx + canvasTileSize, ty + canvasTileSize), ImColor(255, 0, 0));
+			ImGui::End();
+
+			// Save map dialog
+			{
+				const char *popupId = "Save map";
+				if (showSaveDialog) {
+					static char mapNameBuffer[1024] = {};
+					static bool autoOk = false;
+					if (firstTimeSaveDialog) {
+						memory::ClearMemory(mapNameBuffer, sizeof(mapNameBuffer));
+						strings::CopyAnsiString(activeEditorFilePath.c_str(), (u32)activeEditorFilePath.size(), mapNameBuffer, (u32)utils::ArrayCount(mapNameBuffer));
+						firstTimeSaveDialog = false;
+						autoOk = false;
+					}
+					ImGui::OpenPopup(popupId);
+					if (ImGui::BeginPopupModal(popupId, &showSaveDialog, ImGuiWindowFlags_AlwaysAutoResize))
+					{
+						if (ImGui::InputText("Name", mapNameBuffer, IM_ARRAYSIZE(mapNameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+							autoOk = true;
+						}
+						if (ImGui::Button("OK", ImVec2(120, 0)) || autoOk) {
+							ImGui::CloseCurrentPopup();
+							showSaveDialog = autoOk = false;
+
+							activeEditorFilePath = mapNameBuffer;
+							activeEditorFilePath = paths::ChangeFileExtension(mapNameBuffer, (u32)utils::ArrayCount(mapNameBuffer), activeEditorFilePath.c_str(), ".map");
+							SaveMap(activeEditorFilePath.c_str());
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+							ImGui::CloseCurrentPopup();
+							showSaveDialog = autoOk = false;
+						}
+						ImGui::EndPopup();
 					}
 				}
 			}
 
-			ImGui::End();
+			// Load map dialog
+			{
+				const char *loadMapPopupId = "Load map";
+				if (showOpenDialog) {
+					static char loadMapNameBuffer[1024] = {};
+					static bool loadMapAuto = false;
+					if (firstTimeOpenDialog) {
+						memory::ClearMemory(loadMapNameBuffer, sizeof(loadMapNameBuffer));
+						strings::CopyAnsiString(activeEditorFilePath.c_str(), (u32)activeEditorFilePath.size(), loadMapNameBuffer, (u32)utils::ArrayCount(loadMapNameBuffer));
+						firstTimeOpenDialog = false;
+						loadMapAuto = false;
+					}
+					ImGui::OpenPopup(loadMapPopupId);
+					if (ImGui::BeginPopupModal(loadMapPopupId, &showOpenDialog, ImGuiWindowFlags_AlwaysAutoResize))
+					{
+						if (ImGui::InputText("Name", loadMapNameBuffer, IM_ARRAYSIZE(loadMapNameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+							loadMapAuto = true;
+						}
+						if (ImGui::Button("OK", ImVec2(120, 0)) || loadMapAuto) {
+							ImGui::CloseCurrentPopup();
+							showOpenDialog = loadMapAuto = false;
+
+							activeEditorFilePath = loadMapNameBuffer;
+							activeEditorFilePath = paths::ChangeFileExtension(loadMapNameBuffer, (u32)utils::ArrayCount(loadMapNameBuffer), activeEditorFilePath.c_str(), ".map");
+							LoadMap(activeEditorFilePath.c_str());
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+							ImGui::CloseCurrentPopup();
+							showOpenDialog = loadMapAuto = false;
+						}
+						ImGui::EndPopup();
+					}
+				}
+			}
+
+
 		}
 
 		void Game::ClearLevel() {
@@ -515,11 +592,55 @@ namespace finalspace {
 			walls.clear();
 			controlledPlayers.clear();
 		}
-		void Game::LoadLevel(const char *filePath) {
-			ClearLevel();
-		}
-		void Game::SaveLevel(const char *filePath) {
+		void Game::LoadMap(const char *filePath) {
+			char buffer[1024];
+			paths::GetHomePath(buffer, (u32)utils::ArrayCount(buffer));
+			std::string homePath = buffer;
+			char *fullDirPath = paths::CombinePath(buffer, (u32)utils::ArrayCount(buffer), 2, homePath.c_str(), "MyGame");
+			char *fullFilePath = paths::CombinePath(buffer, (u32)utils::ArrayCount(buffer), 3, homePath.c_str(), "MyGame", filePath);
 
+			auto fileHandle = files::OpenBinaryFile(fullFilePath);
+			if (fileHandle.isValid) {
+				u32 read;
+				char magic[4] = {};
+				assert(sizeof(MapMagicId) == sizeof(magic));
+				read = files::ReadFileBlock32(fileHandle, sizeof(magic), &magic, sizeof(magic));
+				assert(read == sizeof(magic) && (strncmp(MapMagicId, magic, utils::ArrayCount(MapMagicId)) == 0));
+
+				ClearLevel();
+
+				u32 tileCount = 0;
+				const u32 maxTileCount = TileCountForWidth * TileCountForHeight;
+				read = files::ReadFileBlock32(fileHandle, sizeof(tileCount), &tileCount, sizeof(tileCount));
+				assert(read == sizeof(tileCount) && tileCount == maxTileCount);
+
+				Tile *firstTile = &tiles[0];
+				read = files::ReadFileBlock32(fileHandle, sizeof(Tile) * tileCount, firstTile, sizeof(Tile) * maxTileCount);
+				assert(read == sizeof(Tile) * maxTileCount);
+
+				files::CloseFile(fileHandle);
+			}
+		}
+		void Game::SaveMap(const char *filePath) {
+			char buffer[1024];
+			paths::GetHomePath(buffer, (u32)utils::ArrayCount(buffer));
+			std::string homePath = buffer;
+			char *fullDirPath = paths::CombinePath(buffer, (u32)utils::ArrayCount(buffer), 2, homePath.c_str(), "MyGame");
+			files::CreateDirectories(fullDirPath);
+			char *fullFilePath = paths::CombinePath(buffer, (u32)utils::ArrayCount(buffer), 3, homePath.c_str(), "MyGame", filePath);
+			auto fileHandle = files::CreateBinaryFile(fullFilePath);
+			if (fileHandle.isValid) {
+				files::WriteFileBlock32(fileHandle, (void *)&MapMagicId, sizeof(MapMagicId));
+				u32 tileCount = TileCountForWidth * TileCountForHeight;
+				files::WriteFileBlock32(fileHandle, &tileCount, sizeof(tileCount));
+				for (u32 tileY = 0; tileY < TileCountForHeight; ++tileY) {
+					for (u32 tileX = 0; tileX < TileCountForWidth; ++tileX) {
+						Tile tile = tiles[tileY * TileCountForWidth + tileX];
+						files::WriteFileBlock32(fileHandle, &tile, sizeof(tile));
+					}
+				}
+				files::CloseFile(fileHandle);
+			}
 		}
 
 		void Game::CreateWallsFromTiles() {
@@ -540,19 +661,12 @@ namespace finalspace {
 
 		void Game::UISaveMap(const bool withDialog) {
 			if (withDialog) {
-				const char *popupId = "Save map";
-				ImGui::OpenPopup(popupId);
-				if (ImGui::BeginPopup(popupId)) {
-					ImGui::Text("Aquarium");
-					ImGui::Separator();
-					ImGui::EndPopup();
-				}
 			}
 		}
 
 		void Game::HandleInput(const Input &input) {
 			if (isEditor) {
-				EditorUpdate(input);
+				EditorUpdate();
 			}
 
 			renderer.Update(HalfGameWidth, HalfGameHeight, GameAspect);
@@ -579,6 +693,8 @@ namespace finalspace {
 				SetExternalForces();
 				ProcessPlayerInput(input);
 				MovePlayers(input);
+			} else {
+
 			}
 		}
 

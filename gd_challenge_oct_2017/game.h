@@ -80,6 +80,7 @@ namespace finalspace {
 			static constexpr f32 GameHeight = GameWidth / GameAspect;
 			static constexpr f32 HalfGameWidth = GameWidth * 0.5f;
 			static constexpr f32 HalfGameHeight = GameHeight * 0.5f;
+			static constexpr char MapMagicId[4] = { 'f', 'm', 'a', 'p' };
 
 			inline Vec2f TileToWorld(const s32 tileX, const s32 tileY) const {
 				const Vec2f tileMapExt = Vec2f((f32)TileCountForWidth * TileSize, (f32)TileCountForHeight * TileSize) * 0.5f;
@@ -114,10 +115,14 @@ namespace finalspace {
 
 			Vec2f gravity = Vec2f(0, -4);
 			Vec2f mouseWorldPos = Vec2f();
-			b32 isSinglePlayer = true;
+			bool isSinglePlayer = true;
 
-			b32 isEditor = false;
+			bool isEditor = false;
 			std::string activeEditorFilePath = std::string("");
+			bool showSaveDialog = false;
+			bool firstTimeSaveDialog = false;
+			bool showOpenDialog = false;
+			bool firstTimeOpenDialog = false;
 
 			std::vector<Entity> players = std::vector<Entity>();
 			std::vector<Wall> walls = std::vector<Wall>();
@@ -134,15 +139,15 @@ namespace finalspace {
 			void UISaveMap(const bool withDialog);
 
 			void ClearLevel();
-			void LoadLevel(const char *filePath);
-			void SaveLevel(const char *filePath);
+			void LoadMap(const char *filePath);
+			void SaveMap(const char *filePath);
 			void CreateWallsFromTiles();
 
 			void HandleControllerConnections(const Input &input);
 			void ProcessPlayerInput(const Input &input);
 			void MovePlayers(const Input &input);
 			void SetExternalForces();
-			void EditorUpdate(const Input &input);
+			void EditorUpdate();
 		public:
 			Game(Renderer &renderer);
 			~Game() override;
