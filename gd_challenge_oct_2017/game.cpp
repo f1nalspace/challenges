@@ -439,6 +439,7 @@ namespace finalspace {
 				if (ImGui::BeginMenu("File")) {
 					if (ImGui::MenuItem("New map")) {
 						ClearLevel();
+						activeEditorFilePath = "";
 					}
 					if (ImGui::MenuItem("Load map...")) {
 						showOpenDialog = true;
@@ -488,7 +489,7 @@ namespace finalspace {
 						f32 ty = canvasViewportStart.y + y * canvasTileSize;
 						draw_list->AddRectFilled(ImVec2(tx, ty), ImVec2(tx + canvasTileSize, ty + canvasTileSize), ImColor(255, 0, 0));
 					}
-				}
+				}	
 			}
 
 			// Mouse hover and click actions
@@ -568,9 +569,11 @@ namespace finalspace {
 							ImGui::CloseCurrentPopup();
 							showOpenDialog = loadMapAuto = false;
 
-							activeEditorFilePath = loadMapNameBuffer;
-							activeEditorFilePath = paths::ChangeFileExtension(loadMapNameBuffer, (u32)utils::ArrayCount(loadMapNameBuffer), activeEditorFilePath.c_str(), ".map");
-							LoadMap(activeEditorFilePath.c_str());
+							std::string tempFilePath = loadMapNameBuffer;
+							char *tempFilePathWithExt = paths::ChangeFileExtension(loadMapNameBuffer, (u32)utils::ArrayCount(loadMapNameBuffer), tempFilePath.c_str(), ".map");
+							if (LoadMap(tempFilePathWithExt)) {
+								activeEditorFilePath = tempFilePathWithExt;
+							}
 						}
 						ImGui::SameLine();
 						if (ImGui::Button("Cancel", ImVec2(120, 0))) {
@@ -592,7 +595,9 @@ namespace finalspace {
 			walls.clear();
 			controlledPlayers.clear();
 		}
-		void Game::LoadMap(const char *filePath) {
+		bool Game::LoadMap(const char *filePath) {
+			bool result = false;
+
 			char buffer[1024];
 			paths::GetHomePath(buffer, (u32)utils::ArrayCount(buffer));
 			std::string homePath = buffer;
@@ -618,8 +623,12 @@ namespace finalspace {
 				read = files::ReadFileBlock32(fileHandle, sizeof(Tile) * tileCount, firstTile, sizeof(Tile) * maxTileCount);
 				assert(read == sizeof(Tile) * maxTileCount);
 
+				result = true;
+
 				files::CloseFile(fileHandle);
 			}
+
+			return(result);
 		}
 		void Game::SaveMap(const char *filePath) {
 			char buffer[1024];

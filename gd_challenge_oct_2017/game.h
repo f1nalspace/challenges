@@ -139,7 +139,7 @@ namespace finalspace {
 			void UISaveMap(const bool withDialog);
 
 			void ClearLevel();
-			void LoadMap(const char *filePath);
+			bool LoadMap(const char *filePath);
 			void SaveMap(const char *filePath);
 			void CreateWallsFromTiles();
 
