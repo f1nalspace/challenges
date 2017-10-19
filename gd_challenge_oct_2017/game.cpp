@@ -89,8 +89,8 @@ namespace finalspace {
 				s32 centerX = TileCountForWidth / 2;
 				s32 centerY = TileCountForHeight / 2 - 2;
 
-				SetTile(centerX, centerY, true);
-				SetTile(centerX + 1, centerY + 1, true);
+				SetTile(centerX, centerY, TileType::Block);
+				SetTile(centerX + 1, centerY + 1, TileType::Block);
 
 				CreateWallsFromTiles();
 
@@ -464,8 +464,8 @@ namespace finalspace {
 			}
 
 			// Canvas area
-			auto minRegion = ImGui::GetWindowContentRegionMin();
-			auto maxRegion = ImGui::GetWindowContentRegionMax();
+			ImVec2 minRegion = ImGui::GetWindowContentRegionMin();
+			ImVec2 maxRegion = ImGui::GetWindowContentRegionMax();
 			Vec2f canvasMin = Vec2f(minRegion.x, maxRegion.y);
 			Vec2f canvasMax = Vec2f(maxRegion.x, minRegion.y);
 
@@ -482,12 +482,16 @@ namespace finalspace {
 			for (u32 y = 0; y < TileCountForHeight; ++y) {
 				for (u32 x = 0; x < TileCountForWidth; ++x) {
 					const Tile &tile = tiles[y * TileCountForWidth + x];
-					if (tile.isSolid) {
-						Vec4f tileColor = Vec4f(1.0f, 0.0f, 0.0f);
+					if (tile.type != TileType::None) {
+						Vec4f platformColor;
+						if (tile.type == TileType::Platform)
+							platformColor = Vec4f(0.0f, 0.0f, 0.75f);
+						else
+							platformColor = Vec4f(0.0f, 0.0f, 1.0f);
 						Vec2f tilePos = TileToWorld(x, y) - Vec2f(TileSize * 0.5f);
-						Vec2f p1 = canvasArea.Project(tilePos);
-						Vec2f p2 = canvasArea.Project(tilePos + Vec2f(TileSize));
-						draw_list->AddRectFilled(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImColor(tileColor.r, tileColor.g, tileColor.b, tileColor.a));
+						Vec2f a = canvasArea.Project(tilePos);
+						Vec2f b = canvasArea.Project(tilePos + Vec2f(TileSize));
+						draw_list->AddRectFilled(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImColor(platformColor.r, platformColor.g, platformColor.b, platformColor.a));
 					}
 				}	
 			}
@@ -497,25 +501,25 @@ namespace finalspace {
 				const Entity &player = players[playerIndex];
 				Vec4f playerColor = Vec4f(1.0f, 1.0f, 1.0f);
 				Vec2f playerPos = player.position - player.ext;
-				Vec2f p1 = canvasArea.Project(playerPos);
-				Vec2f p2 = canvasArea.Project(playerPos + player.ext * 2.0f);
-				draw_list->AddRectFilled(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImColor(playerColor.r, playerColor.g, playerColor.b, playerColor.a));
+				Vec2f a = canvasArea.Project(playerPos);
+				Vec2f b = canvasArea.Project(playerPos + player.ext * 2.0f);
+				draw_list->AddRectFilled(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImColor(playerColor.r, playerColor.g, playerColor.b, playerColor.a));
 			}
 
 			// Mouse hover and click actions
-			auto mp = ImGui::GetMousePos();
-			Vec2f p = canvasArea.Unproject(Vec2f(mp.x, mp.y));
 			if (ImGui::IsWindowFocused() && ImGui::IsMouseHoveringRect(minRegion, maxRegion)) {
+				ImVec2 mp = ImGui::GetMousePos();
+				Vec2f p = canvasArea.Unproject(Vec2f(mp.x, mp.y));
 				Vec2i hoverTile = WorldToTile(p);
 				Vec2f tilePos = TileToWorld(hoverTile) - Vec2f(TileSize) * 0.5f;
-				Vec2f p1 = canvasArea.Project(tilePos);
-				Vec2f p2 = canvasArea.Project(tilePos + Vec2f(TileSize));
-				draw_list->AddRect(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImColor(255, 255, 0));
+				Vec2f a = canvasArea.Project(tilePos);
+				Vec2f b = canvasArea.Project(tilePos + Vec2f(TileSize));
+				draw_list->AddRect(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImColor(255, 255, 0));
 
 				if (ImGui::IsMouseDown(0)) {
-					SetTile(hoverTile.x, hoverTile.y, true);
+					SetTile(hoverTile.x, hoverTile.y, TileType::Block);
 				} else if (ImGui::IsMouseDown(2)) {
-					SetTile(hoverTile.x, hoverTile.y, false);
+					SetTile(hoverTile.x, hoverTile.y, TileType::None);
 				}
 			}
 
@@ -667,11 +671,12 @@ namespace finalspace {
 			for (u32 y = 0; y < TileCountForHeight; ++y) {
 				for (u32 x = 0; x < TileCountForWidth; ++x) {
 					const Tile &tile = tiles[y * TileCountForWidth + x];
-					if (tile.isSolid) {
+					if (tile.type != TileType::None) {
 						Vec2f tileWorldPos = TileToWorld(x, y);
 						Wall wall = {};
 						wall.position = tileWorldPos;
 						wall.ext = TileSize * 0.5f;
+						wall.isPlatform = tile.type == TileType::Platform;
 						walls.emplace_back(wall);
 					}
 				}

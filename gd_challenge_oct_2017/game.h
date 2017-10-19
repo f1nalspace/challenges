@@ -45,8 +45,14 @@ namespace finalspace {
 			u32 controllerIndex = 0;
 		};
 
+		enum class TileType {
+			None = 0,
+			Block,
+			Platform,
+		};
+
 		struct Tile {
-			b32 isSolid = false;
+			TileType type = TileType::None;
 		};
 
 		class BaseGame {
@@ -107,10 +113,10 @@ namespace finalspace {
 				return(result);
 			}
 
-			inline void SetTile(const u32 x, const u32 y, const bool value) {
+			inline void SetTile(const u32 x, const u32 y, const TileType type) {
 				u32 index = y * TileCountForWidth + x;
 				assert(index < tiles.size());
-				tiles[index].isSolid = value;
+				tiles[index].type = type;
 			}
 
 			Vec2f gravity = Vec2f(0, -4);
