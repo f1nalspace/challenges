@@ -85,7 +85,7 @@ namespace finalspace {
 			glEnd();
 		}
 
-		void OpenGLRenderer::DrawSprite(const Vec2f &pos, const Vec2f &ext, const Texture &texture) {
+		void OpenGLRenderer::DrawSprite(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const Texture &texture, const Vec2f &uvMin, const Vec2f &uvMax) {
 			Mat4f translation = Mat4f::CreateTranslation(pos);
 			Mat4f mvp = viewProjection * translation;
 			glLoadMatrixf(&mvp.m[0]);
@@ -94,12 +94,12 @@ namespace finalspace {
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, texHandle);
 
-			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			glColor4fv(&color.elements[0]);
 			glBegin(GL_QUADS);
-			glTexCoord2f(1.0f, 1.0f); glVertex2f(ext.w, ext.h);
-			glTexCoord2f(0.0f, 1.0f); glVertex2f(-ext.w, ext.h);
-			glTexCoord2f(0.0f, 0.0f); glVertex2f(-ext.w, -ext.h);
-			glTexCoord2f(1.0f, 0.0f); glVertex2f(ext.w, -ext.h);
+			glTexCoord2f(uvMax.x, uvMax.y); glVertex2f(ext.w, ext.h);
+			glTexCoord2f(uvMin.x, uvMax.y); glVertex2f(-ext.w, ext.h);
+			glTexCoord2f(uvMin.x, uvMin.y); glVertex2f(-ext.w, -ext.h);
+			glTexCoord2f(uvMax.x, uvMin.y); glVertex2f(ext.w, -ext.h);
 			glEnd();;
 
 			glBindTexture(GL_TEXTURE_2D, 0);

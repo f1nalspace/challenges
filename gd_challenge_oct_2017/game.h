@@ -34,10 +34,18 @@ namespace finalspace {
 			f32 jumpPower;
 		};
 
+		enum class TileType : s32 {
+			None = 0,
+			Block,
+			Platform,
+			Player,
+			Enemy,
+		};
+		
 		struct Wall {
 			Vec2f position = {};
 			Vec2f ext = {};
-			b32 isPlatform = false;
+			bool isPlatform = false;
 		};
 
 		struct ControlledPlayer {
@@ -45,10 +53,29 @@ namespace finalspace {
 			u32 controllerIndex = 0;
 		};
 
-		enum class TileType {
-			None = 0,
-			Block,
-			Platform,
+
+
+		// @NOTE: Down to up
+		static const Vec2f TileUVs[] = {
+			// None
+			Vec2f(0.0f, 0.0f),
+			Vec2f(0.0f, 0.0f),
+
+			// Block
+			Vec2f(0.5f, 1.0f),
+			Vec2f(0.0f, 0.5f),
+
+			// Platform
+			Vec2f(1.0f, 1.0f),
+			Vec2f(0.5f, 0.5f),
+
+			// Player start
+			Vec2f(0.5f, 0.5f),
+			Vec2f(0.0f, 0.0f),
+
+			// Enemy start
+			Vec2f(1.0f, 0.5f),
+			Vec2f(0.5f, 0.0f),
 		};
 
 		struct Tile {
@@ -135,8 +162,7 @@ namespace finalspace {
 			std::vector<ControlledPlayer> controlledPlayers = std::vector<ControlledPlayer>();
 			std::vector<Tile> tiles = std::vector<Tile>(TileCountForWidth * TileCountForHeight);
 
-			// @Temporary: Remove this later when we have a proper asset system
-			Texture texture = {};
+			Texture tilesetTexture = {};
 
 			u32 CreatePlayer(const u32 controllerIndex);
 

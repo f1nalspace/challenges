@@ -133,7 +133,6 @@
     <ClInclude Include="final_input.h" />
     <ClInclude Include="final_maths.h" />
     <ClInclude Include="final_opengl.h" />
-    <ClInclude Include="final_render.h" />
     <ClInclude Include="final_renderer.h" />
     <ClInclude Include="final_tiletrace.h" />
     <ClInclude Include="final_types.h" />

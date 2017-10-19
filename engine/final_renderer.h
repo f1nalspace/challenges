@@ -35,39 +35,36 @@ namespace finalspace {
 			}
 		};
 
-		inline RenderArea CreateRenderArea(const Vec2f &sourceMin, const Vec2f &sourceMax, const Vec2f &targetMin, const Vec2f &targetMax) {
+		inline RenderArea CalculateRenderArea(const Vec2f &sourceMin, const Vec2f &sourceMax, const Vec2f &targetMin, const Vec2f &targetMax, const bool letterBoxed) {
 			RenderArea result = {};
 
-			Vec2f sourceSize = sourceMax - sourceMin;
-			f32 sourceAspect = sourceSize.w / sourceSize.h;
+			const Vec2f sourceRange = sourceMax - sourceMin;
+			Vec2f targetRange = targetMax - targetMin;
 
 			result.sourceMin = sourceMin;
 			result.sourceMax = sourceMax;
-			result.targetMin = targetMin;
-			result.targetMax = targetMax;
 
-			Vec2f sourceRange = sourceMax - sourceMin;
-			Vec2f targetRange = targetMax - targetMin;
+			if (letterBoxed) {
+				const f32 sourceAspect = sourceRange.w / sourceRange.h;
+				Vec2f newTargetSize = Vec2f(targetRange.w, targetRange.w / sourceAspect);
+				if (newTargetSize.h > targetRange.h) {
+					newTargetSize.h = targetRange.h;
+					newTargetSize.w = targetRange.h * sourceAspect;
+				}
+				Vec2f newTargetOffset = Vec2f((targetRange.w - newTargetSize.w) / 2.0f, (targetRange.h - newTargetSize.h) / 2.0f);
+				targetRange = newTargetSize;
+
+				result.targetMin = targetMin + newTargetOffset;
+				result.targetMax = targetMin + newTargetOffset + newTargetSize;
+			} else {
+				result.targetMin = targetMin;
+				result.targetMax = targetMax;
+			}
 
 			f32 scaleX = (sourceRange.x) / (targetRange.x);
 			f32 scaleY = (sourceRange.y) / (targetRange.y);
-
 			result.sourceScale = Vec2f(scaleX, scaleY);
 
-#if 0
-			renderArea.screenSize = Vec2f(screenWidth, screenHeight);
-			renderArea.halfAreaSize = Vec2f(halfGameWidth, halfGameHeight);
-			renderArea.scale = (f32)screenWidth / (halfGameWidth * 2.0f);
-			Vec2f viewportSize = Vec2f(screenWidth, screenWidth / aspectRatio);
-			if (viewportSize.h > screenHeight) {
-				viewportSize.h = screenHeight;
-				viewportSize.w = viewportSize.h * aspectRatio;
-				renderArea.scale = (f32)viewportSize.w / (halfGameWidth * 2.0f);
-			}
-			Vec2f viewportOffset = Vec2f((screenWidth - viewportSize.w) / 2.0f, (screenHeight - viewportSize.h) / 2.0f);
-			renderArea.viewportSize = viewportSize;
-			renderArea.viewportOffset = viewportOffset;
-#endif
 			return(result);
 		}
 
@@ -83,8 +80,8 @@ namespace finalspace {
 			virtual void EndFrame() = 0;
 			virtual void Update(const f32 halfGameWidth, const f32 halfGameHeight, const f32 aspectRatio) = 0;
 			virtual Vec2f Unproject(const Vec2i &windowPos) = 0;
+			virtual void DrawSprite(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const Texture &texture, const Vec2f &uvMin = Vec2f(0.0f, 0.0f), const Vec2f &uvMax = Vec2f(1.0f, 1.0f)) = 0;
 			virtual void DrawRectangle(const Vec2f &pos, const Vec2f &ext, const Vec4f &color = Vec4f::White, const bool isFilled = true) = 0;
-			virtual void DrawSprite(const Vec2f &pos, const Vec2f &ext, const Texture &texture) = 0;
 			Renderer() {}
 			virtual ~Renderer() {}
 		};

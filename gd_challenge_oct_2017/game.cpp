@@ -52,6 +52,7 @@ namespace finalspace {
 					u8 *imageFileData = new u8[imageFileSize];
 					fpl::files::ReadFileBlock32(imageFileHandle, imageFileSize, imageFileData, imageFileSize);
 					int imageWidth, imageHeight, imageComponents;
+					stbi_set_flip_vertically_on_load(1);
 					auto imageData = stbi_load_from_memory(imageFileData, imageFileSize, &imageWidth, &imageHeight, &imageComponents, 4);
 					delete[] imageFileData;
 					if (imageData != nullptr) {
@@ -72,7 +73,7 @@ namespace finalspace {
 			walls.clear();
 
 			// @Temporary: Remove this later, the renderer should take care of that automatically
-			ReleaseTexture(renderer, texture);
+			ReleaseTexture(renderer, tilesetTexture);
 		}
 
 		void Game::Init() {
@@ -80,9 +81,8 @@ namespace finalspace {
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-			// @Temporary: Remove when have a proper asset system
-			constexpr char *imageFilePath = "brickwall.png";
-			texture = LoadTexture(renderer, imageFilePath);
+			// Load textures
+			tilesetTexture = LoadTexture(renderer, "tileset.png");
 
 			// Load test level
 			constexpr char *testLevel = "test.map";
@@ -372,10 +372,12 @@ namespace finalspace {
 			// Canvas area
 			ImVec2 minRegion = ImGui::GetWindowContentRegionMin();
 			ImVec2 maxRegion = ImGui::GetWindowContentRegionMax();
+
+			// @NOTE: Y max and min are swaped, because our coordinate system is down to up, imgui is up to down
 			Vec2f canvasMin = Vec2f(minRegion.x, maxRegion.y);
 			Vec2f canvasMax = Vec2f(maxRegion.x, minRegion.y);
 
-			RenderArea canvasArea = CreateRenderArea(-Vec2f(HalfGameWidth, HalfGameHeight), Vec2f(HalfGameWidth, HalfGameHeight), canvasMin, canvasMax);
+			RenderArea canvasArea = CalculateRenderArea(-Vec2f(HalfGameWidth, HalfGameHeight), Vec2f(HalfGameWidth, HalfGameHeight), canvasMin, canvasMax, true);
 
 			ImVec2 actualCanvasMin = ImVec2(canvasArea.targetMin.x, canvasArea.targetMin.y);
 			ImVec2 actualCanvasMax = ImVec2(canvasArea.targetMax.x, canvasArea.targetMax.y);
@@ -394,10 +396,16 @@ namespace finalspace {
 							platformColor = Vec4f(0.0f, 0.0f, 0.75f);
 						else
 							platformColor = Vec4f(0.0f, 0.0f, 1.0f);
+						
+						s32 tileTypeIndex = (s32)tile.type;
+						Vec2f uvMax = TileUVs[tileTypeIndex * 2 + 0];
+						Vec2f uvMin = TileUVs[tileTypeIndex * 2 + 1];
+
 						Vec2f tilePos = TileToWorld(x, y) - Vec2f(TileSize * 0.5f);
 						Vec2f a = canvasArea.Project(tilePos);
 						Vec2f b = canvasArea.Project(tilePos + Vec2f(TileSize));
-						draw_list->AddRectFilled(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImColor(platformColor.r, platformColor.g, platformColor.b, platformColor.a));
+						ImTextureID texId = tilesetTexture.handle;
+						draw_list->AddImage(texId, ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImVec2(uvMin.x, uvMin.y), ImVec2(uvMax.x, uvMax.y));
 					}
 				}
 			}
@@ -413,7 +421,7 @@ namespace finalspace {
 			}
 
 			// Mouse hover and click actions
-			if (ImGui::IsWindowFocused() && ImGui::IsMouseHoveringRect(minRegion, maxRegion)) {
+			if (ImGui::IsWindowFocused() && ImGui::IsMouseHoveringRect(actualCanvasMin, actualCanvasMax)) {
 				ImVec2 mp = ImGui::GetMousePos();
 				Vec2f p = canvasArea.Unproject(Vec2f(mp.x, mp.y));
 				Vec2i hoverTile = WorldToTile(p);
@@ -625,12 +633,13 @@ namespace finalspace {
 				// Draw walls
 				for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
 					const Wall &wall = walls[wallIndex];
-					Vec4f platformColor;
-					if (wall.isPlatform)
-						platformColor = Vec4f(0.0f, 0.0f, 0.75f);
-					else
-						platformColor = Vec4f(0.0f, 0.0f, 1.0f);
-					renderer.DrawRectangle(wall.position, wall.ext, platformColor);
+					s32 tileTypeIndex = (s32)TileType::Block;
+					if (wall.isPlatform) {
+						tileTypeIndex = (s32)TileType::Platform;
+					}
+					Vec2f uvMax = TileUVs[tileTypeIndex * 2 + 0];
+					Vec2f uvMin = TileUVs[tileTypeIndex * 2 + 1];
+					renderer.DrawSprite(wall.position, wall.ext, Vec4f::White, tilesetTexture, uvMin, uvMax);
 				}
 
 				// Draw players
