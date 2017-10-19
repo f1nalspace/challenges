@@ -364,8 +364,8 @@ int main(int argc, char **args) {
 				Mouse *prevMouse = &prevInput->mouse;
 				*currentKeyboardController = {};
 				*currentMouse = {};
+				currentKeyboardController->isConnected = true;
 				if (isWindowActive) {
-					currentKeyboardController->isConnected = true;
 					for (u32 buttonIndex = 0; buttonIndex < utils::ArrayCount(currentKeyboardController->buttons); ++buttonIndex) {
 						currentKeyboardController->buttons[buttonIndex].isDown = prevKeyboardController->buttons[buttonIndex].isDown;
 					}

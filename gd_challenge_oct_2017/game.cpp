@@ -84,107 +84,13 @@ namespace finalspace {
 			constexpr char *imageFilePath = "brickwall.png";
 			texture = LoadTexture(renderer, imageFilePath);
 
-			// @Temporary: Fixed level for now
-			{
-				s32 centerX = TileCountForWidth / 2;
-				s32 centerY = TileCountForHeight / 2 - 2;
-
-				SetTile(centerX, centerY, TileType::Block);
-				SetTile(centerX + 1, centerY + 1, TileType::Block);
-
+			// Load test level
+			constexpr char *testLevel = "test.map";
+			if (LoadMap(testLevel)) {
 				CreateWallsFromTiles();
-
-#if 0
-				constexpr float WallDepth = TileSize;
-				Wall wall;
-
-				// Solid side walls
-				wall = Wall();
-				wall.position = Vec2f(0, -HalfGameHeight + WallDepth * 0.5f);
-				wall.ext = Vec2f(HalfGameWidth, WallDepth * 0.5f);
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.position = Vec2f(0, HalfGameHeight - WallDepth * 0.5f);
-				wall.ext = Vec2f(HalfGameWidth, WallDepth * 0.5f);
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.position = Vec2f(-HalfGameWidth + WallDepth * 0.5f, 0);
-				wall.ext = Vec2f(WallDepth * 0.5f, HalfGameHeight - (WallDepth));
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.position = Vec2f(HalfGameWidth - WallDepth * 0.5f, 0);
-				wall.ext = Vec2f(WallDepth * 0.5f, HalfGameHeight - (WallDepth));
-				walls.emplace_back(wall);
-
-				// Small solid tiles
-				wall = Wall();
-				wall.position = Vec2f(-HalfGameWidth + 2.0f, -3.25f);
-				wall.ext = Vec2f(WallDepth * 0.5f, WallDepth * 0.5f);
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.position = Vec2f(HalfGameWidth - 2.0f, -3.25f);
-				wall.ext = Vec2f(WallDepth * 0.5f, WallDepth * 0.5f);
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.position = Vec2f(2.0f, 3.25f);
-				wall.ext = Vec2f(WallDepth * 0.5f, WallDepth * 0.5f);
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.position = Vec2f(-2.0f, 3.25f);
-				wall.ext = Vec2f(WallDepth * 0.5f, WallDepth * 0.5f);
-				walls.emplace_back(wall);
-
-				// Center platforms
-				wall = Wall();
-				wall.position = Vec2f(0, -3.0f);
-				wall.ext = Vec2f(4.0f, WallDepth * 0.5f);
-				wall.isPlatform = true;
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.position = Vec2f(0, 1.25f);
-				wall.ext = Vec2f(4.0f, WallDepth * 0.5f);
-				wall.isPlatform = true;
-				walls.emplace_back(wall);
-
-				// Side platforms
-				wall = Wall();
-				wall.ext = Vec2f(1.5f, WallDepth * 0.5f);
-				wall.position = Vec2f(-HalfGameWidth + wall.ext.w + WallDepth, -1.0f);
-				wall.isPlatform = true;
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.ext = Vec2f(1.5f, WallDepth * 0.5f);
-				wall.position = Vec2f(HalfGameWidth - wall.ext.w - WallDepth, -1.0f);
-				wall.isPlatform = true;
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.ext = Vec2f(1.0f, WallDepth * 0.5f);
-				wall.position = Vec2f(0.0f, -1.0f);
-				wall.isPlatform = true;
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.ext = Vec2f(1.0f, WallDepth * 0.5f);
-				wall.position = Vec2f(-HalfGameWidth + wall.ext.w + WallDepth, 3.0f);
-				wall.isPlatform = true;
-				walls.emplace_back(wall);
-
-				wall = Wall();
-				wall.ext = Vec2f(1.0f, WallDepth * 0.5f);
-				wall.position = Vec2f(HalfGameWidth - wall.ext.w - WallDepth, 3.0f);
-				wall.isPlatform = true;
-				walls.emplace_back(wall);
-#endif
+				activeEditorFilePath = testLevel;
 			}
+
 		}
 
 		u32 Game::CreatePlayer(const u32 controllerIndex) {
@@ -469,7 +375,7 @@ namespace finalspace {
 			Vec2f canvasMin = Vec2f(minRegion.x, maxRegion.y);
 			Vec2f canvasMax = Vec2f(maxRegion.x, minRegion.y);
 
-			RenderArea canvasArea = CreateRenderArea(-Vec2f(HalfGameWidth, HalfGameHeight), Vec2f(HalfGameWidth, HalfGameHeight), canvasMin, canvasMax);			
+			RenderArea canvasArea = CreateRenderArea(-Vec2f(HalfGameWidth, HalfGameHeight), Vec2f(HalfGameWidth, HalfGameHeight), canvasMin, canvasMax);
 
 			ImVec2 actualCanvasMin = ImVec2(canvasArea.targetMin.x, canvasArea.targetMin.y);
 			ImVec2 actualCanvasMax = ImVec2(canvasArea.targetMax.x, canvasArea.targetMax.y);
@@ -493,7 +399,7 @@ namespace finalspace {
 						Vec2f b = canvasArea.Project(tilePos + Vec2f(TileSize));
 						draw_list->AddRectFilled(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImColor(platformColor.r, platformColor.g, platformColor.b, platformColor.a));
 					}
-				}	
+				}
 			}
 
 			// Draw players
@@ -612,13 +518,7 @@ namespace finalspace {
 		bool Game::LoadMap(const char *filePath) {
 			bool result = false;
 
-			char buffer[1024];
-			paths::GetHomePath(buffer, (u32)utils::ArrayCount(buffer));
-			std::string homePath = buffer;
-			char *fullDirPath = paths::CombinePath(buffer, (u32)utils::ArrayCount(buffer), 2, homePath.c_str(), "MyGame");
-			char *fullFilePath = paths::CombinePath(buffer, (u32)utils::ArrayCount(buffer), 3, homePath.c_str(), "MyGame", filePath);
-
-			auto fileHandle = files::OpenBinaryFile(fullFilePath);
+			auto fileHandle = files::OpenBinaryFile(filePath);
 			if (fileHandle.isValid) {
 				u32 read;
 				char magic[4] = {};
@@ -645,13 +545,7 @@ namespace finalspace {
 			return(result);
 		}
 		void Game::SaveMap(const char *filePath) {
-			char buffer[1024];
-			paths::GetHomePath(buffer, (u32)utils::ArrayCount(buffer));
-			std::string homePath = buffer;
-			char *fullDirPath = paths::CombinePath(buffer, (u32)utils::ArrayCount(buffer), 2, homePath.c_str(), "MyGame");
-			files::CreateDirectories(fullDirPath);
-			char *fullFilePath = paths::CombinePath(buffer, (u32)utils::ArrayCount(buffer), 3, homePath.c_str(), "MyGame", filePath);
-			auto fileHandle = files::CreateBinaryFile(fullFilePath);
+			auto fileHandle = files::CreateBinaryFile(filePath);
 			if (fileHandle.isValid) {
 				files::WriteFileBlock32(fileHandle, (void *)&MapMagicId, sizeof(MapMagicId));
 				u32 tileCount = TileCountForWidth * TileCountForHeight;
