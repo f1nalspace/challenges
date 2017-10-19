@@ -464,48 +464,58 @@ namespace finalspace {
 			}
 
 			// Canvas area
-			auto maxRegion = ImGui::GetWindowContentRegionMax();
 			auto minRegion = ImGui::GetWindowContentRegionMin();
-			auto regionSize = ImVec2(maxRegion.x - minRegion.x, maxRegion.y - minRegion.y);
-			const ImVec2 startCursorPos = ImGui::GetCursorScreenPos();
+			auto maxRegion = ImGui::GetWindowContentRegionMax();
+			Vec2f canvasMin = Vec2f(minRegion.x, maxRegion.y);
+			Vec2f canvasMax = Vec2f(maxRegion.x, minRegion.y);
 
-			RenderArea canvasArea = {};
-			UpdateRenderArea(canvasArea, regionSize.x, regionSize.y, HalfGameWidth, HalfGameHeight, GameAspect);
-			const f32 canvasTileSize = TileSize * canvasArea.scale;
+			RenderArea canvasArea = CreateRenderArea(-Vec2f(HalfGameWidth, HalfGameHeight), Vec2f(HalfGameWidth, HalfGameHeight), canvasMin, canvasMax);			
+
+			ImVec2 actualCanvasMin = ImVec2(canvasArea.targetMin.x, canvasArea.targetMin.y);
+			ImVec2 actualCanvasMax = ImVec2(canvasArea.targetMax.x, canvasArea.targetMax.y);
 
 			ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-			const ImVec2 canvasViewportStart = ImVec2(startCursorPos.x + canvasArea.viewportOffset.x, startCursorPos.y + canvasArea.viewportOffset.y);
-			const ImVec2 canvasViewportEnd = ImVec2(canvasViewportStart.x + canvasArea.viewportSize.w, canvasViewportStart.y + canvasArea.viewportSize.h);
-			draw_list->AddRect(canvasViewportStart, canvasViewportEnd, ImColor(255, 255, 0));
+			draw_list->AddRect(actualCanvasMin, actualCanvasMax, ImColor(255, 255, 0));
 
 			// Draw tiles
 			for (u32 y = 0; y < TileCountForHeight; ++y) {
-				u32 tileY = (TileCountForHeight - 1 - y);
 				for (u32 x = 0; x < TileCountForWidth; ++x) {
-					const Tile &tile = tiles[tileY * TileCountForWidth + x];
+					const Tile &tile = tiles[y * TileCountForWidth + x];
 					if (tile.isSolid) {
-						f32 tx = canvasViewportStart.x + x * canvasTileSize;
-						f32 ty = canvasViewportStart.y + y * canvasTileSize;
-						draw_list->AddRectFilled(ImVec2(tx, ty), ImVec2(tx + canvasTileSize, ty + canvasTileSize), ImColor(255, 0, 0));
+						Vec4f tileColor = Vec4f(1.0f, 0.0f, 0.0f);
+						Vec2f tilePos = TileToWorld(x, y) - Vec2f(TileSize * 0.5f);
+						Vec2f p1 = canvasArea.Project(tilePos);
+						Vec2f p2 = canvasArea.Project(tilePos + Vec2f(TileSize));
+						draw_list->AddRectFilled(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImColor(tileColor.r, tileColor.g, tileColor.b, tileColor.a));
 					}
 				}	
 			}
 
-			// Mouse hover and click actions
-			if (ImGui::IsWindowFocused() && ImGui::IsMouseHoveringRect(canvasViewportStart, canvasViewportEnd)) {
-				auto mp = ImGui::GetMousePos();
-				s32 hoverTileX = (s32)((mp.x - canvasViewportStart.x) / canvasTileSize);
-				s32 hoverTileY = (s32)((mp.y - canvasViewportStart.y) / canvasTileSize);
-				f32 tx = canvasViewportStart.x + hoverTileX * canvasTileSize;
-				f32 ty = canvasViewportStart.y + hoverTileY * canvasTileSize;
-				draw_list->AddRect(ImVec2(tx, ty), ImVec2(tx + canvasTileSize, ty + canvasTileSize), ImColor(255, 255, 0));
+			// Draw players
+			for (u32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
+				const Entity &player = players[playerIndex];
+				Vec4f playerColor = Vec4f(1.0f, 1.0f, 1.0f);
+				Vec2f playerPos = player.position - player.ext;
+				Vec2f p1 = canvasArea.Project(playerPos);
+				Vec2f p2 = canvasArea.Project(playerPos + player.ext * 2.0f);
+				draw_list->AddRectFilled(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImColor(playerColor.r, playerColor.g, playerColor.b, playerColor.a));
+			}
 
-				u32 invertHoverTileY = (TileCountForHeight - 1 - hoverTileY);
+			// Mouse hover and click actions
+			auto mp = ImGui::GetMousePos();
+			Vec2f p = canvasArea.Unproject(Vec2f(mp.x, mp.y));
+			if (ImGui::IsWindowFocused() && ImGui::IsMouseHoveringRect(minRegion, maxRegion)) {
+				Vec2i hoverTile = WorldToTile(p);
+				Vec2f tilePos = TileToWorld(hoverTile) - Vec2f(TileSize) * 0.5f;
+				Vec2f p1 = canvasArea.Project(tilePos);
+				Vec2f p2 = canvasArea.Project(tilePos + Vec2f(TileSize));
+				draw_list->AddRect(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImColor(255, 255, 0));
+
 				if (ImGui::IsMouseDown(0)) {
-					SetTile(hoverTileX, invertHoverTileY, true);
+					SetTile(hoverTile.x, hoverTile.y, true);
 				} else if (ImGui::IsMouseDown(2)) {
-					SetTile(hoverTileX, invertHoverTileY, false);
+					SetTile(hoverTile.x, hoverTile.y, false);
 				}
 			}
 
@@ -723,13 +733,13 @@ namespace finalspace {
 						platformColor = Vec4f(0.0f, 0.0f, 1.0f);
 					renderer.DrawRectangle(wall.position, wall.ext, platformColor);
 				}
-			}
 
-			// Draw players
-			for (u32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
-				const Entity &player = players[playerIndex];
-				Vec4f playerColor = Vec4f(1.0f, 1.0f, 1.0f);
-				renderer.DrawRectangle(player.position, player.ext, playerColor);
+				// Draw players
+				for (u32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
+					const Entity &player = players[playerIndex];
+					Vec4f playerColor = Vec4f(1.0f, 1.0f, 1.0f);
+					renderer.DrawRectangle(player.position, player.ext, playerColor);
+				}
 			}
 
 			renderer.EndFrame();
