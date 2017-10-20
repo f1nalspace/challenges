@@ -22,29 +22,41 @@ namespace finalspace {
 			Vec2f targetMin;
 			Vec2f targetMax;
 			Vec2f sourceScale;
+			Vec2f targetScale;
 
 			inline Vec2f Project(const Vec2f &sourcePos) {
-				Vec2f invScale = Vec2f(1.0f / sourceScale.x, 1.0f / sourceScale.y);
-				Vec2f result = targetMin + Hadamard(sourcePos - sourceMin, invScale);
+				Vec2f percentage = Vec2f((sourcePos.x - sourceMin.x) * sourceScale.x, (sourcePos.y - sourceMin.y) * sourceScale.y);
+				f32 x = Lerp(targetMin.x, percentage.x, targetMax.x);
+				f32 y = Lerp(targetMin.y, percentage.y, targetMax.y);
+				Vec2f result = Vec2f(x, y);
 				return(result);
 			}
 
 			inline Vec2f Unproject(const Vec2f &targetPos) {
-				Vec2f result = sourceMin + Vec2f((targetPos.x - targetMin.x) * sourceScale.x, (targetPos.y - targetMin.y) * sourceScale.y);
+				Vec2f percentage = Vec2f((targetPos.x - targetMin.x) * targetScale.x, (targetPos.y - targetMin.y) * targetScale.y);
+				f32 x = Lerp(sourceMin.x, percentage.x, sourceMax.x);
+				f32 y = Lerp(sourceMin.y, percentage.y, sourceMax.y);
+				Vec2f result = Vec2f(x, y);
 				return(result);
 			}
 		};
 
 		inline RenderArea CalculateRenderArea(const Vec2f &sourceMin, const Vec2f &sourceMax, const Vec2f &targetMin, const Vec2f &targetMax, const bool letterBoxed) {
+			// @TODO: Do we want to allow source min/max to be flipped as well
+			assert(sourceMin.x < sourceMax.x);
+			assert(sourceMin.y < sourceMax.y);
+
 			RenderArea result = {};
 
-			const Vec2f sourceRange = sourceMax - sourceMin;
-			Vec2f targetRange = targetMax - targetMin;
+			Vec2f sourceRange = Absolute(sourceMax - sourceMin);
+			Vec2f targetRange = Absolute(targetMax - targetMin);
 
 			result.sourceMin = sourceMin;
 			result.sourceMax = sourceMax;
 
+
 			if (letterBoxed) {
+				// @NOTE: Letterbox calculation is done in absolute range always
 				const f32 sourceAspect = sourceRange.w / sourceRange.h;
 				Vec2f newTargetSize = Vec2f(targetRange.w, targetRange.w / sourceAspect);
 				if (newTargetSize.h > targetRange.h) {
@@ -54,16 +66,33 @@ namespace finalspace {
 				Vec2f newTargetOffset = Vec2f((targetRange.w - newTargetSize.w) / 2.0f, (targetRange.h - newTargetSize.h) / 2.0f);
 				targetRange = newTargetSize;
 
-				result.targetMin = targetMin + newTargetOffset;
-				result.targetMax = targetMin + newTargetOffset + newTargetSize;
+				// Nuisance, but this works
+				if (targetMin.x < targetMax.x) {
+					result.targetMin.x = targetMin.x + newTargetOffset.x;
+					result.targetMax.x = targetMax.x - newTargetOffset.x;
+					targetRange.x = newTargetSize.w;
+				} else {
+					result.targetMin.x = targetMin.x - newTargetOffset.x;
+					result.targetMax.x = targetMax.x + newTargetOffset.x;
+					targetRange.y = -newTargetSize.h;
+				}
+
+				if (targetMin.y < targetMax.y) {
+					result.targetMin.y = targetMin.y + newTargetOffset.y;
+					result.targetMax.y = targetMax.y - newTargetOffset.y;
+					targetRange.y = newTargetSize.h;
+				} else {
+					result.targetMin.y = targetMin.y - newTargetOffset.y;
+					result.targetMax.y = targetMax.y + newTargetOffset.y;
+					targetRange.y = -newTargetSize.h;
+				}
 			} else {
 				result.targetMin = targetMin;
 				result.targetMax = targetMax;
 			}
 
-			f32 scaleX = (sourceRange.x) / (targetRange.x);
-			f32 scaleY = (sourceRange.y) / (targetRange.y);
-			result.sourceScale = Vec2f(scaleX, scaleY);
+			result.sourceScale = Vec2f(1.0f / sourceRange.x, 1.0f / sourceRange.y);
+			result.targetScale = Vec2f(1.0f / targetRange.x, 1.0f / targetRange.y);
 
 			return(result);
 		}

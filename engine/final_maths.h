@@ -614,7 +614,7 @@ namespace finalspace {
 
 		template<typename T>
 		inline T Lerp(const T a, const f32 t, const T b) {
-			T result = (1.0f - t) * a * t * b;
+			T result = (1.0f - t) * a + t * b;
 			return(result);
 		}
 
@@ -631,7 +631,7 @@ namespace finalspace {
 		//
 		// Vec2i functions (Do not depend on the operators)
 		//
-		inline bool IsEqual(const Vec2i a, const Vec2i b) {
+		inline bool IsEqual(const Vec2i &a, const Vec2i &b) {
 			bool result = (a.x == b.x) && (a.y == b.y);
 			return(result);
 		}
@@ -670,7 +670,12 @@ namespace finalspace {
 		//
 		// Vec2f functions (Do not depend on the operators)
 		//
-		inline bool IsEqual(const Vec2f a, const Vec2f b, const f32 tolerance) {
+		inline Vec2f Absolute(const Vec2f &v) {
+			Vec2f result = Vec2f(Absolute(v.x), Absolute(v.y));
+			return(result);
+		}
+
+		inline bool IsEqual(const Vec2f &a, const Vec2f &b, const f32 tolerance) {
 			bool result = IsEqual(a.x, b.x, tolerance) && IsEqual(a.y, b.y, tolerance);
 			return(result);
 		}
@@ -808,7 +813,7 @@ namespace finalspace {
 		//
 		// Vec3f functions (Do not depend on the operators)
 		//
-		inline bool IsEqual(const Vec3f a, const Vec3f b, const f32 tolerance) {
+		inline bool IsEqual(const Vec3f &a, const Vec3f &b, const f32 tolerance) {
 			bool result = 
 				IsEqual(a.x, b.x, tolerance) && 
 				IsEqual(a.y, b.y, tolerance) &&
