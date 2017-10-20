@@ -130,6 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="final_game.h" />
     <ClInclude Include="final_input.h" />
     <ClInclude Include="final_maths.h" />
     <ClInclude Include="final_opengl.h" />

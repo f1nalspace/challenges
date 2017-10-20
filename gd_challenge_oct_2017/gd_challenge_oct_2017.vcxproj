@@ -167,6 +167,7 @@
     <ClCompile Include="..\dependencies\include\imgui\imgui.cpp" />
     <ClCompile Include="..\dependencies\include\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\dependencies\include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="editor.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -178,6 +179,7 @@
     <ClInclude Include="..\dependencies\include\imgui\imgui_internal.h" />
     <ClInclude Include="..\dependencies\include\stb_image.h" />
     <ClInclude Include="..\dependencies\include\stb_truetype.h" />
+    <ClInclude Include="editor.h" />
     <ClInclude Include="game.h" />
   </ItemGroup>
   <ItemGroup>

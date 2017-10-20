@@ -328,7 +328,7 @@ int main(int argc, char **args) {
 
 		InitImGUI();
 
-		BaseGame *game = new Game(*renderer);
+		BaseGame *game = new mygame::Game(*renderer);
 		game->Init();
 
 		constexpr f32 TargetDeltaTime = 1.0f / 60.0f;

@@ -12,6 +12,7 @@
     <ClCompile Include="..\dependencies\include\imgui\imgui_demo.cpp">
       <Filter>dependencies\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="editor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h" />
@@ -36,6 +37,7 @@
     <ClInclude Include="..\dependencies\include\stb_truetype.h">
       <Filter>dependencies</Filter>
     </ClInclude>
+    <ClInclude Include="editor.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dependencies">
