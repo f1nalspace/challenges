@@ -424,12 +424,6 @@ namespace finalspace {
 						for (u32 x = 0; x < TileCountForWidth; ++x) {
 							const Tile &tile = tiles[y * TileCountForWidth + x];
 							if (tile.type != TileType::None) {
-								Vec4f platformColor;
-								if (tile.type == TileType::Platform)
-									platformColor = Vec4f(0.0f, 0.0f, 0.75f);
-								else
-									platformColor = Vec4f(0.0f, 0.0f, 1.0f);
-
 								s32 tileTypeIndex = (s32)tile.type;
 								Vec2f uvMax = TileUVs[tileTypeIndex * 2 + 0];
 								Vec2f uvMin = TileUVs[tileTypeIndex * 2 + 1];
@@ -463,6 +457,16 @@ namespace finalspace {
 						Vec2f tilePos = TileToWorld(hoverTile) - Vec2f(TileSize) * 0.5f;
 						Vec2f a = canvasArea.Project(tilePos);
 						Vec2f b = canvasArea.Project(tilePos + Vec2f(TileSize));
+
+						if (selectedTileType != TileType::None) {
+							// @TODO: This is the same code as drawing a tile in the loop, make a function!
+							s32 tileTypeIndex = (s32)selectedTileType;
+							Vec2f uvMax = TileUVs[tileTypeIndex * 2 + 0];
+							Vec2f uvMin = TileUVs[tileTypeIndex * 2 + 1];
+							ImTextureID texId = tilesetTexture.handle;
+							ImU32 color = 0xAFFFFFFF;
+							draw_list->AddImage(texId, ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImVec2(uvMin.x, uvMin.y), ImVec2(uvMax.x, uvMax.y), color);
+						}
 						draw_list->AddRect(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImColor(255, 255, 100));
 
 						if (ImGui::IsMouseDown(0)) {
