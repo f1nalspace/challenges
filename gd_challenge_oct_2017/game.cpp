@@ -379,17 +379,35 @@ namespace finalspace {
 
 				// Tool bar
 				if (ImGui::CollapsingHeader("Toolbar", nullptr, ImGuiTreeNodeFlags_::ImGuiTreeNodeFlags_DefaultOpen)) {
-					ImGui::Text("Hello Toolbar!");
+					ImGui::Text("Tile:");
+					ImGui::SameLine();
+					if (ImGui::RadioButton("None", selectedTileType == TileType::None)) {
+						selectedTileType = TileType::None;
+					}
+					ImGui::SameLine();
+					if (ImGui::RadioButton("Block", selectedTileType == TileType::Block)) {
+						selectedTileType = TileType::Block;
+					}
+					ImGui::SameLine();
+					if (ImGui::RadioButton("Platform", selectedTileType == TileType::Platform)) {
+						selectedTileType = TileType::Platform;
+					}
+					ImGui::SameLine();
+					if (ImGui::RadioButton("Player", selectedTileType == TileType::Player)) {
+						selectedTileType = TileType::Player;
+					}
+					ImGui::SameLine();
+					if (ImGui::RadioButton("Enemy", selectedTileType == TileType::Enemy)) {
+						selectedTileType = TileType::Enemy;
+					}
 				}
 	
 				// Canvas panel
 				if (ImGui::CollapsingHeader("Canvas", nullptr, ImGuiTreeNodeFlags_::ImGuiTreeNodeFlags_DefaultOpen)) {
-					ImGui::Text("Hello Canvas!");
-
-					// @NOTE: Y max and min are swaped, because our coordinate system is down to up, imgui is up to down
 					ImVec2 minRegion = ImGui::GetCursorPos();
 					ImVec2 contentAvailable = ImGui::GetContentRegionAvail();
 					ImVec2 maxRegion = ImVec2(minRegion.x + contentAvailable.x, minRegion.y + contentAvailable.y);
+					// @NOTE: Y max and min are swapped, because our coordinate system is down to up, imgui is up to down
 					Vec2f canvasMin = Vec2f(minRegion.x, maxRegion.y);
 					Vec2f canvasMax = Vec2f(maxRegion.x, minRegion.y);
 
@@ -448,9 +466,7 @@ namespace finalspace {
 						draw_list->AddRect(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImColor(255, 255, 100));
 
 						if (ImGui::IsMouseDown(0)) {
-							SetTile(hoverTile.x, hoverTile.y, TileType::Block);
-						} else if (ImGui::IsMouseDown(2)) {
-							SetTile(hoverTile.x, hoverTile.y, TileType::None);
+							SetTile(hoverTile.x, hoverTile.y, selectedTileType);
 						}
 					}
 

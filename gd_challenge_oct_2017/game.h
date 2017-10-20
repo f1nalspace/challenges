@@ -124,6 +124,8 @@ namespace finalspace {
 				bool showOpenDialog = false;
 				bool firstTimeOpenDialog = false;
 
+				TileType selectedTileType = TileType::None;
+
 				std::vector<Tile> tiles = std::vector<Tile>(TileCountForWidth * TileCountForHeight);
 
 				inline void SetTile(const u32 x, const u32 y, const TileType type) {
