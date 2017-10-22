@@ -202,7 +202,10 @@ namespace finalspace {
 			}
 
 			void Game::ProcessEnemyAI(const f32 deltaTime) {
-
+				for (u32 enemyIndex = 0; enemyIndex < enemies.size(); ++enemyIndex) {
+					Entity &enemy = enemies[enemyIndex];
+					enemy.velocity = Vec2f(0.5f, 0);
+				}
 			}
 
 			void Game::ProcessPlayerInput(const Input &input) {
