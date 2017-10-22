@@ -319,16 +319,16 @@ static void ProcessEvents(Input *currentInput, Input *prevInput, bool &isWindowA
 }
 
 int main(int argc, char **args) {
-	if (InitPlatform(InitFlags::VideoOpenGL)) {
-		SetWindowResizeable(true);
-		SetWindowArea(1280, 720);
-
-		// Init
+	BaseGame *game = new mygame::Game();
+	InitSettings platformSettings = InitSettings();
+	platformSettings.window.width = game->GetInitialWidth();
+	platformSettings.window.height = game->GetInitialHeight();
+	if (InitPlatform(InitFlags::VideoOpenGL, platformSettings)) {
 		Renderer *renderer = (Renderer *)new OpenGLRenderer();
 
 		InitImGUI();
 
-		BaseGame *game = new mygame::Game(*renderer);
+		game->SetRenderer(renderer);
 		game->Init();
 
 		constexpr f32 TargetDeltaTime = 1.0f / 60.0f;
@@ -461,11 +461,11 @@ int main(int argc, char **args) {
 			utils::Swap(currentInput, prevInput);
 		}
 
+		// Release resources
 		game->Release();
 		ReleaseImGUI();
-		delete game;
 		delete renderer;
-
 		ReleasePlatform();
+		delete game;
 	}
 }

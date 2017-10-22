@@ -8,13 +8,18 @@ namespace finalspace {
 	inline namespace games {
 
 		class BaseGame {
+		private:
+			u32 initialWidth;
+			u32 initialHeight;
 		protected:
-			Renderer &renderer;
+			Renderer *renderer;
 			bool exitRequested;
 		public:
-			BaseGame(Renderer &renderer) :
-				renderer(renderer),
-				exitRequested(false) {
+			BaseGame() :
+				renderer(nullptr),
+				exitRequested(false),
+				initialWidth(640),
+				initialHeight(360) {
 			}
 			virtual void Init() = 0;
 			virtual void Release() = 0;
@@ -25,6 +30,15 @@ namespace finalspace {
 			}
 			inline bool IsExitRequested() const {
 				return exitRequested;
+			}
+			inline u32 GetInitialWidth() const {
+				return initialWidth;
+			}
+			inline u32 GetInitialHeight() const {
+				return initialHeight;
+			}
+			inline void SetRenderer(Renderer *renderer) {
+				this->renderer = renderer;
 			}
 		};
 	}

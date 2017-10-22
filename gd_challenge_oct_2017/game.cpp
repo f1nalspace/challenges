@@ -35,7 +35,7 @@ namespace finalspace {
 			};
 
 			// @Temporary: I dont want to unload textures manually, this should happen automatically
-			static void ReleaseTexture(Renderer &renderer, Texture &texture) {
+			static void ReleaseTexture(Renderer *renderer, Texture &texture) {
 				GLuint textureId = utils::PointerToValue<GLuint>(texture.handle);
 				if (textureId) {
 					glDeleteTextures(1, &textureId);
@@ -44,7 +44,7 @@ namespace finalspace {
 			}
 
 			// @Temporary: I dont want to load textures manually, this should happen automatically when i want to access the texture (Think this trough, but for now we load it manually.)
-			static Texture LoadTexture(Renderer &renderer, const char *imageFilePath) {
+			static Texture LoadTexture(Renderer *renderer, const char *imageFilePath) {
 				Texture result = {};
 				fpl::files::FileHandle imageFileHandle = fpl::files::OpenBinaryFile(imageFilePath);
 				if (imageFileHandle.isValid) {
@@ -57,7 +57,7 @@ namespace finalspace {
 						auto imageData = stbi_load_from_memory(imageFileData, imageFileSize, &imageWidth, &imageHeight, &imageComponents, 4);
 						delete[] imageFileData;
 						if (imageData != nullptr) {
-							result.handle = renderer.AllocateTexture(imageWidth, imageHeight, imageData);
+							result.handle = renderer->AllocateTexture(imageWidth, imageHeight, imageData);
 							result.width = imageWidth;
 							result.height = imageHeight;
 							stbi_image_free(imageData);
@@ -78,6 +78,8 @@ namespace finalspace {
 			}
 
 			void Game::Init() {
+				assert(renderer != nullptr);
+
 				fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
 
 				glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -689,12 +691,12 @@ namespace finalspace {
 					EditorUpdate();
 				}
 
-				renderer.Update(HalfGameWidth, HalfGameHeight, GameAspect);
+				renderer->Update(HalfGameWidth, HalfGameHeight, GameAspect);
 
 				// Update world mouse position
 				const s32 mouseX = input.mouse.pos.x;
-				const s32 mouseY = renderer.windowSize.h - 1 - input.mouse.pos.y;
-				mouseWorldPos = renderer.Unproject(Vec2i(mouseX, mouseY));
+				const s32 mouseY = renderer->windowSize.h - 1 - input.mouse.pos.y;
+				mouseWorldPos = renderer->Unproject(Vec2i(mouseX, mouseY));
 
 				if (input.keyboard.editorToggle.WasPressed()) {
 					if (isEditor) {
@@ -721,7 +723,7 @@ namespace finalspace {
 			}
 
 			void Game::Render() {
-				renderer.BeginFrame();
+				renderer->BeginFrame();
 
 				const Vec2f tileExt = Vec2f(TileSize * 0.5f);
 
@@ -735,28 +737,28 @@ namespace finalspace {
 						}
 						Vec2f uvMax = TileUVs[tileTypeIndex * 2 + 0];
 						Vec2f uvMin = TileUVs[tileTypeIndex * 2 + 1];
-						renderer.DrawSprite(wall.position, wall.ext, Vec4f::White, tilesetTexture, uvMin, uvMax);
+						renderer->DrawSprite(wall.position, wall.ext, Vec4f::White, tilesetTexture, uvMin, uvMax);
 					}
 
 					// Draw enemies
 					for (u32 enemyIndex = 0; enemyIndex < enemies.size(); ++enemyIndex) {
 						const Entity &enemy = enemies[enemyIndex];
 						assert(enemy.type == EntityType::Enemy);
-						renderer.DrawRectangle(enemy.position, enemy.ext, enemy.color);
+						renderer->DrawRectangle(enemy.position, enemy.ext, enemy.color);
 					}
 
 					// Draw players
 					for (u32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 						const Entity &player = players[playerIndex];
 						assert(player.type == EntityType::Player);
-						renderer.DrawRectangle(player.position, player.ext, player.color);
+						renderer->DrawRectangle(player.position, player.ext, player.color);
 					}
 				}
 
-				renderer.EndFrame();
+				renderer->EndFrame();
 			}
 
-			Game::Game(Renderer &renderer) : BaseGame(renderer) {
+			Game::Game() : BaseGame() {
 			}
 
 			Game::~Game() {

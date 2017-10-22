@@ -185,13 +185,14 @@ namespace finalspace {
 				void SetExternalForces();
 				void EditorUpdate();
 			public:
-				Game(Renderer &renderer);
+				Game();
 				~Game() override;
 				void Init() override;
 				void Release() override;
 				void HandleInput(const Input &input) override;
 				void Update(const Input &input) override;
 				void Render() override;
+				
 			};
 
 		};
