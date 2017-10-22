@@ -94,10 +94,33 @@ namespace finalspace {
 
 			}
 
+			ResultTilePosition Game::FindFreePlayerTile() {
+				ResultTilePosition result = {};
+
+				for (u32 tileY = 0; tileY < TileCountForHeight; ++tileY) {
+					for (u32 tileX = 0; tileX < TileCountForWidth; ++tileX) {
+						const Tile &tile = GetTile(tileX, tileY);
+						if (tile.type == TileType::Player) {
+							// @TODO: Find tile where is most far away from existing entities
+							result.found = true;
+							result.tileX = tileX;
+							result.tileY = tileY;
+							break;
+						}
+					}
+				}
+
+				return(result);
+			}
+
 			u32 Game::CreatePlayer(const u32 controllerIndex) {
+				ResultTilePosition resultPos = FindFreePlayerTile();
+				assert(resultPos.found);
+				Vec2f playerCenterOnTile = TileToWorld(resultPos.tileX, resultPos.tileY);
+
 				Entity player = Entity();
-				player.position = Vec2f();
 				player.ext = Vec2f(0.4f, 0.4f);
+				player.position = playerCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, player.ext.y);
 				player.horizontalSpeed = 20.0f;
 				player.horizontalDrag = 13.0f;
 				player.canJump = true;
@@ -612,7 +635,7 @@ namespace finalspace {
 				for (u32 y = 0; y < TileCountForHeight; ++y) {
 					for (u32 x = 0; x < TileCountForWidth; ++x) {
 						const Tile &tile = tiles[y * TileCountForWidth + x];
-						if (tile.type != TileType::None) {
+						if (tile.type == TileType::Block || tile.type == TileType::Platform) {
 							Vec2f tileWorldPos = TileToWorld(x, y);
 							Wall wall = {};
 							wall.position = tileWorldPos;

@@ -81,6 +81,12 @@ namespace finalspace {
 				TileType type = TileType::None;
 			};
 
+			struct ResultTilePosition {
+				b32 found;
+				s32 tileX;
+				s32 tileY;
+			};
+
 			static constexpr f32 TileSize = 0.5f;
 			static constexpr u32 TileCountForWidth = 40;
 			static constexpr u32 TileCountForHeight = 22;
@@ -134,6 +140,11 @@ namespace finalspace {
 					tiles[index].type = type;
 				}
 
+				inline const Tile &GetTile(const u32 x, const u32 y) const {
+					u32 index = y * TileCountForWidth + x;
+					return(tiles[index]);
+				}
+
 				Vec2f gravity = Vec2f(0, -4);
 				Vec2f mouseWorldPos = Vec2f();
 				bool isSinglePlayer = true;
@@ -145,6 +156,8 @@ namespace finalspace {
 				std::vector<ControlledPlayer> controlledPlayers = std::vector<ControlledPlayer>();
 
 				Texture tilesetTexture = {};
+
+				ResultTilePosition FindFreePlayerTile();
 
 				u32 CreatePlayer(const u32 controllerIndex);
 
