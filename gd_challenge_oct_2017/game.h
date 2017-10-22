@@ -19,9 +19,11 @@ namespace finalspace {
 
 			enum class EntityType {
 				Player,
+				Enemy,
 			};
 
 			struct Entity {
+				Vec4f color;
 				Vec2f position;
 				Vec2f velocity;
 				Vec2f acceleration;
@@ -97,6 +99,9 @@ namespace finalspace {
 			static constexpr f32 HalfGameHeight = GameHeight * 0.5f;
 			static constexpr char MapMagicId[4] = { 'f', 'm', 'a', 'p' };
 
+			typedef u32 PlayerIndex;
+			typedef u32 EnemyIndex;
+
 			struct Game : BaseGame {
 				inline Vec2f TileToWorld(const s32 tileX, const s32 tileY) const {
 					const Vec2f tileMapExt = Vec2f((f32)TileCountForWidth * TileSize, (f32)TileCountForHeight * TileSize) * 0.5f;
@@ -152,6 +157,7 @@ namespace finalspace {
 				bool isEditor = false;
 
 				std::vector<Entity> players = std::vector<Entity>();
+				std::vector<Entity> enemies = std::vector<Entity>();
 				std::vector<Wall> walls = std::vector<Wall>();
 				std::vector<ControlledPlayer> controlledPlayers = std::vector<ControlledPlayer>();
 
@@ -159,20 +165,23 @@ namespace finalspace {
 
 				ResultTilePosition FindFreePlayerTile();
 
-				u32 CreatePlayer(const u32 controllerIndex);
+				EnemyIndex CreateEnemy(u32 tileX, u32 tileY);
+
+				PlayerIndex CreatePlayer(const u32 controllerIndex);
 
 				s32 FindControlledPlayerIndex(const u32 controllerIndex);
 
 				void UISaveMap(const bool withDialog);
 
-				void ClearLevel();
+				void ClearMap();
 				bool LoadMap(const char *filePath);
 				void SaveMap(const char *filePath);
-				void CreateWallsFromTiles();
+				void SwitchFromEditorToGame();
 
 				void HandleControllerConnections(const Input &input);
 				void ProcessPlayerInput(const Input &input);
-				void MovePlayers(const Input &input);
+				void ProcessEnemyAI(const f32 deltaTime);
+				void MoveEntities(std::vector<Entity> &entities, const f32 deltaTime);
 				void SetExternalForces();
 				void EditorUpdate();
 			public:

@@ -88,7 +88,7 @@ namespace finalspace {
 				// Load test level
 				constexpr char *testLevel = "test.map";
 				if (LoadMap(testLevel)) {
-					CreateWallsFromTiles();
+					SwitchFromEditorToGame();
 					activeEditorFilePath = testLevel;
 				}
 
@@ -113,12 +113,28 @@ namespace finalspace {
 				return(result);
 			}
 
-			u32 Game::CreatePlayer(const u32 controllerIndex) {
+			EnemyIndex Game::CreateEnemy(u32 tileX, u32 tileY) {
+				Vec2f enemyCenterOnTile = TileToWorld(tileX, tileY);
+
+				Entity enemy = Entity();
+				enemy.ext = Vec2f(0.3f, 0.3f);
+				enemy.position = enemyCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, enemy.ext.y);
+				enemy.type = EntityType::Enemy;
+				enemy.color = Vec4f(1.0f, 0.0f, 1.0f);
+
+				u32 result = (u32)enemies.size();
+				enemies.emplace_back(enemy);
+				return(result);
+			}
+
+			PlayerIndex Game::CreatePlayer(const u32 controllerIndex) {
 				ResultTilePosition resultPos = FindFreePlayerTile();
 				assert(resultPos.found);
 				Vec2f playerCenterOnTile = TileToWorld(resultPos.tileX, resultPos.tileY);
 
 				Entity player = Entity();
+				player.type = EntityType::Player;
+				player.color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
 				player.ext = Vec2f(0.4f, 0.4f);
 				player.position = playerCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, player.ext.y);
 				player.horizontalSpeed = 20.0f;
@@ -183,6 +199,10 @@ namespace finalspace {
 				}
 			}
 
+			void Game::ProcessEnemyAI(const f32 deltaTime) {
+
+			}
+
 			void Game::ProcessPlayerInput(const Input &input) {
 				// Player forces
 				for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
@@ -226,18 +246,18 @@ namespace finalspace {
 				}
 			}
 
-			void Game::MovePlayers(const Input &input) {
-				for (s32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
-					Entity &player = players[playerIndex];
+			void Game::MoveEntities(std::vector<Entity> &entities, const f32 deltaTime) {
+				for (s32 entityIndex = 0; entityIndex < entities.size(); ++entityIndex) {
+					Entity &entity = entities[entityIndex];
 
-					player.isGrounded = false;
+					entity.isGrounded = false;
 
 					// Movement equation:
 					// p' = (a / 2) * dt^2 + v * dt + p
 					// v' = a * dt + v
-					Vec2f playerDelta = 0.5f * player.acceleration * (input.deltaTime * input.deltaTime) + player.velocity * input.deltaTime;
-					player.velocity = player.acceleration * input.deltaTime + player.velocity;
-					player.acceleration = Vec2f();
+					Vec2f deltaMovement = 0.5f * entity.acceleration * (deltaTime * deltaTime) + entity.velocity * deltaTime;
+					entity.velocity = entity.acceleration * deltaTime + entity.velocity;
+					entity.acceleration = Vec2f();
 
 					// Do line segment tests for each wall, find the side of the wall which is nearest in time
 					// To support colliding with multiple walls we iterate a few times
@@ -245,29 +265,29 @@ namespace finalspace {
 						f32 tmin = 1.0f;
 						f32 tmax = 1.0f;
 
-						f32 playerDeltaLen = Length(playerDelta);
-						if (playerDeltaLen > 0.0f) {
+						f32 deltaMovementLen = Length(deltaMovement);
+						if (deltaMovementLen > 0.0f) {
 
 							Vec2f wallNormalMin = Vec2f();
 							Wall *hitWallMin = nullptr;
 
-							Vec2f targetPosition = player.position + playerDelta;
+							Vec2f targetPosition = entity.position + deltaMovement;
 
 							for (u32 wallIndex = 0; wallIndex < walls.size(); ++wallIndex) {
 								Wall &wall = walls[wallIndex];
 
-								Vec2f minkowskiExt = { player.ext.x + wall.ext.x, player.ext.y + wall.ext.y };
+								Vec2f minkowskiExt = { entity.ext.x + wall.ext.x, entity.ext.y + wall.ext.y };
 								Vec2f minCorner = -minkowskiExt;
 								Vec2f maxCorner = minkowskiExt;
 
-								Vec2f rel = player.position - wall.position;
+								Vec2f rel = entity.position - wall.position;
 
 								WallSide testSides[4] =
 								{
-									{ minCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y,{ -1, 0 } },
-									{ maxCorner.x, rel.x, rel.y, playerDelta.x, playerDelta.y, minCorner.y, maxCorner.y,{ 1, 0 } },
-									{ minCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x,{ 0, -1 } },
-									{ maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x,{ 0, 1 } },
+									{ minCorner.x, rel.x, rel.y, deltaMovement.x, deltaMovement.y, minCorner.y, maxCorner.y,{ -1, 0 } },
+									{ maxCorner.x, rel.x, rel.y, deltaMovement.x, deltaMovement.y, minCorner.y, maxCorner.y,{ 1, 0 } },
+									{ minCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, -1 } },
+									{ maxCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, 1 } },
 								};
 
 								u32 wallSideCount = 4;
@@ -275,7 +295,7 @@ namespace finalspace {
 								if (wall.isPlatform) {
 									// @NOTE: One a platform we just have to test for the upper side.
 									wallSideCount = 1;
-									testSides[0] = { maxCorner.y, rel.y, rel.x, playerDelta.y, playerDelta.x, minCorner.x, maxCorner.x,{ 0, 1 } };
+									testSides[0] = { maxCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, 1 } };
 								}
 
 								// @TODO: It works but i would prefered a generic line segment intersection test here
@@ -300,7 +320,7 @@ namespace finalspace {
 
 								if (wasHit) {
 									// Solid block or one sided platform
-									if ((!wall.isPlatform) || (wall.isPlatform && (Dot(playerDelta, Vec2f::Up) <= 0))) {
+									if ((!wall.isPlatform) || (wall.isPlatform && (Dot(deltaMovement, Vec2f::Up) <= 0))) {
 										tmin = hitTime;
 										wallNormalMin = testSideNormal;
 										hitWallMin = &wall;
@@ -319,19 +339,19 @@ namespace finalspace {
 								stopTime = tmax;
 							}
 
-							player.position += stopTime * playerDelta;
+							entity.position += stopTime * deltaMovement;
 
 							if (hitWall != nullptr) {
 								// Recalculate player delta and apply bounce (canceling out the velocity along the normal)
 								f32 restitution = 0.0f;
-								playerDelta = targetPosition - player.position;
-								playerDelta += -(1 + restitution) * Dot(playerDelta, wallNormal) * wallNormal;
-								player.velocity += -(1 + restitution) * Dot(player.velocity, wallNormal) * wallNormal;
+								deltaMovement = targetPosition - entity.position;
+								deltaMovement += -(1 + restitution) * Dot(deltaMovement, wallNormal) * wallNormal;
+								entity.velocity += -(1 + restitution) * Dot(entity.velocity, wallNormal) * wallNormal;
 
 								// Update grounded states
 								if (Dot(wallNormal, Vec2f::Up) > 0) {
-									player.isGrounded = true;
-									player.jumpCount = 0;
+									entity.isGrounded = true;
+									entity.jumpCount = 0;
 								}
 							}
 						}
@@ -375,7 +395,7 @@ namespace finalspace {
 				if (ImGui::BeginMenuBar()) {
 					if (ImGui::BeginMenu("File")) {
 						if (ImGui::MenuItem("New map")) {
-							ClearLevel();
+							ClearMap();
 							activeEditorFilePath = "";
 						}
 						if (ImGui::MenuItem("Load map...")) {
@@ -424,7 +444,7 @@ namespace finalspace {
 						selectedTileType = TileType::Enemy;
 					}
 				}
-	
+
 				// Canvas panel
 				if (ImGui::CollapsingHeader("Canvas", nullptr, ImGuiTreeNodeFlags_::ImGuiTreeNodeFlags_DefaultOpen)) {
 					ImVec2 minRegion = ImGui::GetCursorPos();
@@ -578,10 +598,11 @@ namespace finalspace {
 
 			}
 
-			void Game::ClearLevel() {
+			void Game::ClearMap() {
 				for (u32 tileIndex = 0; tileIndex < tiles.size(); ++tileIndex)
 					tiles[tileIndex] = {};
 				players.clear();
+				enemies.clear();
 				walls.clear();
 				controlledPlayers.clear();
 			}
@@ -596,7 +617,7 @@ namespace finalspace {
 					read = files::ReadFileBlock32(fileHandle, sizeof(magic), &magic, sizeof(magic));
 					assert(read == sizeof(magic) && (strncmp(MapMagicId, magic, utils::ArrayCount(MapMagicId)) == 0));
 
-					ClearLevel();
+					ClearMap();
 
 					u32 tileCount = 0;
 					const u32 maxTileCount = TileCountForWidth * TileCountForHeight;
@@ -630,7 +651,8 @@ namespace finalspace {
 				}
 			}
 
-			void Game::CreateWallsFromTiles() {
+			void Game::SwitchFromEditorToGame() {
+				// Create walls
 				walls.clear();
 				for (u32 y = 0; y < TileCountForHeight; ++y) {
 					for (u32 x = 0; x < TileCountForWidth; ++x) {
@@ -642,6 +664,16 @@ namespace finalspace {
 							wall.ext = TileSize * 0.5f;
 							wall.isPlatform = tile.type == TileType::Platform;
 							walls.emplace_back(wall);
+						}
+					}
+				}
+
+				// Create enemies
+				for (u32 y = 0; y < TileCountForHeight; ++y) {
+					for (u32 x = 0; x < TileCountForWidth; ++x) {
+						const Tile &tile = tiles[y * TileCountForWidth + x];
+						if (tile.type == TileType::Enemy) {
+							CreateEnemy(x, y);
 						}
 					}
 				}
@@ -666,7 +698,7 @@ namespace finalspace {
 
 				if (input.keyboard.editorToggle.WasPressed()) {
 					if (isEditor) {
-						CreateWallsFromTiles();
+						SwitchFromEditorToGame();
 					}
 					isEditor = !isEditor;
 				}
@@ -680,7 +712,9 @@ namespace finalspace {
 				if (!isEditor) {
 					SetExternalForces();
 					ProcessPlayerInput(input);
-					MovePlayers(input);
+					ProcessEnemyAI(input.deltaTime);
+					MoveEntities(players, input.deltaTime);
+					MoveEntities(enemies, input.deltaTime);
 				} else {
 
 				}
@@ -704,11 +738,18 @@ namespace finalspace {
 						renderer.DrawSprite(wall.position, wall.ext, Vec4f::White, tilesetTexture, uvMin, uvMax);
 					}
 
+					// Draw enemies
+					for (u32 enemyIndex = 0; enemyIndex < enemies.size(); ++enemyIndex) {
+						const Entity &enemy = enemies[enemyIndex];
+						assert(enemy.type == EntityType::Enemy);
+						renderer.DrawRectangle(enemy.position, enemy.ext, enemy.color);
+					}
+
 					// Draw players
 					for (u32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 						const Entity &player = players[playerIndex];
-						Vec4f playerColor = Vec4f(1.0f, 1.0f, 1.0f);
-						renderer.DrawRectangle(player.position, player.ext, playerColor);
+						assert(player.type == EntityType::Player);
+						renderer.DrawRectangle(player.position, player.ext, player.color);
 					}
 				}
 
