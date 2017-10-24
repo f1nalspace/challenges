@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-namespace finalspace {
+namespace fs {
 	namespace utils {
 		template <typename T>
 		inline void Swap(T &a, T &b) {

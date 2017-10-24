@@ -4,8 +4,8 @@
 #include "final_types.h"
 #include "final_renderer.h"
 
-namespace finalspace {
-	inline namespace renderer {
+namespace fs {
+	namespace renderer {
 		class OpenGLRenderer : public Renderer {
 		public:
 			void *AllocateTexture(const u32 width, const u32 height, void *data) override;
@@ -15,8 +15,10 @@ namespace finalspace {
 			Vec2f Unproject(const Vec2i &windowPos) override;
 			void DrawSprite(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const Texture &texture, const Vec2f &uvMin, const Vec2f &uvMax) override;
 			void DrawRectangle(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const bool isFilled) override;
-			OpenGLRenderer() : Renderer() {}
-			~OpenGLRenderer() {};
+			OpenGLRenderer() : Renderer() {
+			}
+			~OpenGLRenderer() {
+			};
 		};
 	};
 };

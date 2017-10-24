@@ -2,7 +2,7 @@
 
 #include <inttypes.h>
 
-namespace finalspace {
+namespace fs {
 	// Booleans
 	typedef int32_t b32;
 

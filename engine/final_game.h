@@ -3,10 +3,11 @@
 #include "final_renderer.h"
 #include "final_input.h"
 
-namespace finalspace {
+using namespace fs::renderer;
+using namespace fs::inputs;
 
-	inline namespace games {
-
+namespace fs {
+	namespace games {
 		class BaseGame {
 		private:
 			u32 initialWidth;
@@ -41,5 +42,5 @@ namespace finalspace {
 				this->renderer = renderer;
 			}
 		};
-	}
-}
+	};
+};

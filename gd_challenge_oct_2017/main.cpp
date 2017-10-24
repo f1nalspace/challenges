@@ -8,6 +8,7 @@ using namespace fpl::console;
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS 1
 #include <imgui/imgui.h>
 
+#include "final_game.h"
 #include "final_types.h"
 #include "final_maths.h"
 #include "final_utils.h"
@@ -17,7 +18,8 @@ using namespace fpl::console;
 // @TODO: Make this a full game independent platform layer
 #include "game.h"
 
-using namespace finalspace;
+using namespace fs;
+using namespace fs::games;
 
 static void UpdateKeyboardButtonState(const b32 isDown, ButtonState &targetButton) {
 	if (isDown != targetButton.isDown) {
@@ -321,8 +323,9 @@ static void ProcessEvents(Input *currentInput, Input *prevInput, bool &isWindowA
 int main(int argc, char **args) {
 	BaseGame *game = new mygame::Game();
 	InitSettings platformSettings = InitSettings();
-	platformSettings.window.width = game->GetInitialWidth();
-	platformSettings.window.height = game->GetInitialHeight();
+	platformSettings.window.windowWidth = game->GetInitialWidth();
+	platformSettings.window.windowHeight = game->GetInitialHeight();
+	platformSettings.video.isVSync = false;
 	if (InitPlatform(InitFlags::VideoOpenGL, platformSettings)) {
 		Renderer *renderer = (Renderer *)new OpenGLRenderer();
 

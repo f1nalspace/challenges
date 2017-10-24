@@ -2,17 +2,16 @@
 
 #include "final_utils.h"
 
-namespace finalspace {
+namespace fs {
 	namespace renderer {
-		void *OpenGLRenderer::AllocateTexture(const u32 width, const u32 height, void * data)
-		{
+		void *OpenGLRenderer::AllocateTexture(const u32 width, const u32 height, void * data) {
 			GLuint handle;
 			glGenTextures(1, &handle);
 			glBindTexture(GL_TEXTURE_2D, handle);
 			glTexImage2D(GL_TEXTURE_2D, 0,
-						 GL_RGBA8,
-						 width, height, 0,
-						 GL_RGBA, GL_UNSIGNED_BYTE, data);
+				GL_RGBA8,
+				width, height, 0,
+				GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -26,8 +25,7 @@ namespace finalspace {
 			return(result);
 		}
 
-		void OpenGLRenderer::BeginFrame()
-		{
+		void OpenGLRenderer::BeginFrame() {
 			glViewport(viewport.offset.x, viewport.offset.y, viewport.size.w, viewport.size.h);
 
 			glMatrixMode(GL_MODELVIEW);
@@ -36,12 +34,10 @@ namespace finalspace {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
-		void OpenGLRenderer::EndFrame()
-		{
+		void OpenGLRenderer::EndFrame() {
 		}
 
-		void OpenGLRenderer::Update(const f32 halfGameWidth, const f32 halfGameHeight, const f32 aspectRatio)
-		{
+		void OpenGLRenderer::Update(const f32 halfGameWidth, const f32 halfGameHeight, const f32 aspectRatio) {
 			// Calculate a letterboxed viewport offset and size
 			viewSize = Vec2f(halfGameWidth, halfGameHeight) * 2.0f;
 			viewScale = (f32)windowSize.w / (halfGameWidth * 2.0f);
@@ -69,8 +65,7 @@ namespace finalspace {
 			}
 			return(result);
 		}
-		void OpenGLRenderer::DrawRectangle(const Vec2f & pos, const Vec2f & ext, const Vec4f &color, const bool isFilled)
-		{
+		void OpenGLRenderer::DrawRectangle(const Vec2f & pos, const Vec2f & ext, const Vec4f &color, const bool isFilled) {
 			Mat4f translation = Mat4f::CreateTranslation(pos);
 			Mat4f mvp = viewProjection * translation;
 			glLoadMatrixf(&mvp.m[0]);

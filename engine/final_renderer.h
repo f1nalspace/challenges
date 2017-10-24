@@ -2,9 +2,10 @@
 #include "final_types.h"
 #include "final_maths.h"
 
-namespace finalspace {
-	inline namespace renderer {
+using namespace fs::maths;
 
+namespace fs {
+	namespace renderer {
 		struct Texture {
 			void *handle;
 			u32 width;
@@ -111,9 +112,10 @@ namespace finalspace {
 			virtual Vec2f Unproject(const Vec2i &windowPos) = 0;
 			virtual void DrawSprite(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const Texture &texture, const Vec2f &uvMin = Vec2f(0.0f, 0.0f), const Vec2f &uvMax = Vec2f(1.0f, 1.0f)) = 0;
 			virtual void DrawRectangle(const Vec2f &pos, const Vec2f &ext, const Vec4f &color = Vec4f::White, const bool isFilled = true) = 0;
-			Renderer() {}
-			virtual ~Renderer() {}
+			Renderer() {
+			}
+			virtual ~Renderer() {
+			}
 		};
-
 	};
 };

@@ -15,8 +15,8 @@
 using namespace fpl;
 using namespace fpl::window;
 
-namespace finalspace {
-	inline namespace games {
+namespace fs {
+	namespace games {
 		namespace mygame {
 
 			struct WallSide {
@@ -539,8 +539,7 @@ namespace finalspace {
 							autoOk = false;
 						}
 						ImGui::OpenPopup(popupId);
-						if (ImGui::BeginPopupModal(popupId, &showSaveDialog, ImGuiWindowFlags_AlwaysAutoResize))
-						{
+						if (ImGui::BeginPopupModal(popupId, &showSaveDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
 							if (ImGui::InputText("Name", mapNameBuffer, IM_ARRAYSIZE(mapNameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
 								autoOk = true;
 							}
@@ -575,8 +574,7 @@ namespace finalspace {
 							loadMapAuto = false;
 						}
 						ImGui::OpenPopup(loadMapPopupId);
-						if (ImGui::BeginPopupModal(loadMapPopupId, &showOpenDialog, ImGuiWindowFlags_AlwaysAutoResize))
-						{
+						if (ImGui::BeginPopupModal(loadMapPopupId, &showOpenDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
 							if (ImGui::InputText("Name", loadMapNameBuffer, IM_ARRAYSIZE(loadMapNameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
 								loadMapAuto = true;
 							}

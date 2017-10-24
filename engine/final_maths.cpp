@@ -1,6 +1,6 @@
 #include "final_maths.h"
 
-namespace finalspace {
+namespace fs {
 	namespace maths {
 		//
 		// Vec2f

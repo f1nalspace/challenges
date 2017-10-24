@@ -4,9 +4,10 @@
 #include "final_maths.h"
 #include "final_utils.h"
 
-namespace finalspace {
-	inline namespace inputs {
+using namespace fs::maths;
 
+namespace fs {
+	namespace inputs {
 		struct ButtonState {
 			b32 isDown = false;
 			s32 halfTransitionCount = 0;
@@ -57,7 +58,8 @@ namespace finalspace {
 				ButtonState buttons[3] = {};
 			};
 
-			Mouse() {}
+			Mouse() {
+			}
 		};
 
 		struct Input {
@@ -74,7 +76,5 @@ namespace finalspace {
 			Input() {
 			}
 		};
-
 	};
-
 };

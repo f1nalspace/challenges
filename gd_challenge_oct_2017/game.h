@@ -13,8 +13,12 @@
 #include "final_renderer.h"
 #include "final_game.h"
 
-namespace finalspace {
-	inline namespace games {
+using namespace fs::maths;
+using namespace fs::inputs;
+using namespace fs::renderer;
+
+namespace fs {
+	namespace games {
 		namespace mygame {
 
 			enum class EntityType {
@@ -192,7 +196,7 @@ namespace finalspace {
 				void HandleInput(const Input &input) override;
 				void Update(const Input &input) override;
 				void Render() override;
-				
+
 			};
 
 		};

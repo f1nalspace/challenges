@@ -12,8 +12,8 @@
 #	include <intrin.h>
 #endif
 
-namespace finalspace {
-	inline namespace maths {
+namespace fs {
+	namespace maths {
 		//
 		// Forward declarations
 		//
@@ -582,7 +582,7 @@ namespace finalspace {
 		//
 		// Scalar operations
 		//
-		template<typename T>
+		template <typename T>
 		inline T Clamp(const T value, const T min, const T max) {
 			T result = value;
 			if (result < min) result = min;
@@ -590,7 +590,7 @@ namespace finalspace {
 			return(result);
 		}
 
-		template<typename T>
+		template <typename T>
 		inline T Maximum(const T a, const T b) {
 			T result;
 			if (b > a) {
@@ -601,7 +601,7 @@ namespace finalspace {
 			return(result);
 		}
 
-		template<typename T>
+		template <typename T>
 		inline T Minimum(const T a, const T b) {
 			T result;
 			if (b < a) {
@@ -612,18 +612,20 @@ namespace finalspace {
 			return(result);
 		}
 
-		template<typename T>
-		inline T Lerp(const T a, const f32 t, const T b) {
-			T result = (1.0f - t) * a + t * b;
+		template <typename T>
+		inline T Lerp(const T a, const T t, const T b) {
+			T result = (1 - t) * a + t * b;
 			return(result);
 		}
 
-		inline f32 Absolute(const f32 value) {
-			f32 result = fabsf(value);
+		template <typename T>
+		inline T Absolute(const T value) {
+			T result = value < 0 ? (-value * 2) : value;
 			return(result);
 		}
 
-		inline bool IsEqual(const f32 a, const f32 b, const f32 tolerance) {
+		template <typename T>
+		inline bool IsEqual(const T a, const T b, const T tolerance) {
 			bool result = Absolute(a - b) < tolerance;
 			return(result);
 		}
@@ -814,8 +816,8 @@ namespace finalspace {
 		// Vec3f functions (Do not depend on the operators)
 		//
 		inline bool IsEqual(const Vec3f &a, const Vec3f &b, const f32 tolerance) {
-			bool result = 
-				IsEqual(a.x, b.x, tolerance) && 
+			bool result =
+				IsEqual(a.x, b.x, tolerance) &&
 				IsEqual(a.y, b.y, tolerance) &&
 				IsEqual(a.z, b.z, tolerance);
 			return(result);
@@ -964,7 +966,7 @@ namespace finalspace {
 		//
 		// Mat4f operators
 		//
-	
+
 		// @NOTE: Fastest SIMD mat4 mult: http://stackoverflow.com/questions/18499971/efficient-4x4-matrix-multiplication-c-vs-assembly
 		inline Mat4f operator *(const Mat4f &a, const Mat4f &b) {
 			Mat4f result = Mat4f(1.0f);
@@ -1030,7 +1032,5 @@ namespace finalspace {
 
 			return(result);
 		}
-
-
 	};
 };
