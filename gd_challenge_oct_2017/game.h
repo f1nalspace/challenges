@@ -12,33 +12,69 @@
 #include "final_input.h"
 #include "final_renderer.h"
 #include "final_game.h"
+#include "final_randoms.h"
 
 using namespace fs::maths;
 using namespace fs::inputs;
 using namespace fs::renderer;
+using namespace fs::randoms;
 
 namespace fs {
 	namespace games {
 		namespace mygame {
 
-			enum class EntityType {
-				Player,
-				Enemy,
+			constexpr f32 VecEqualTolerance = 0.001f;
+			constexpr f32 EntityPlaceOffset = 0.1f;
+
+			struct Wall;
+
+			struct CollisionState {
+				Vec2f normal;
+				Wall *wall;
+				b32 isColliding;
+			};
+
+			constexpr u32 MAX_LAST_COLLISION_COUNT = 8;
+
+			struct AIState {
+				enum class Type {
+					None = 0,
+					DecideDirection,
+					ReflectDirection,
+					Jump,
+					Move,
+				};
+				Type activeType;
+				f32 activeDuration;
+				b32 isWaiting;
+				f32 waitRemaingTime;
+				Type nextType;
+				f32 dice;
 			};
 
 			struct Entity {
-				Vec4f color;
-				Vec2f position;
-				Vec2f velocity;
-				Vec2f acceleration;
-				Vec2f ext;
-				EntityType type;
-				b32 isGrounded;
-				f32 horizontalSpeed;
-				f32 horizontalDrag;
-				b32 canJump;
-				u32 jumpCount;
-				f32 jumpPower;
+				enum class Type {
+					None = 0,
+					Player,
+					Enemy,
+				};
+
+				Vec4f color = Vec4f();
+				Vec2f position = Vec2f();
+				Vec2f velocity = Vec2f();
+				Vec2f acceleration = Vec2f();
+				Vec2f ext = Vec2f();
+				Vec2f moveDirection = Vec2f();
+				Type type = Type::None;
+				b32 isGrounded = false;
+				f32 horizontalSpeed = 0.0f;
+				f32 horizontalDrag = 0.0f;
+				b32 canJump = false;
+				u32 jumpCount = 0;
+				f32 jumpPower = 0.0f;
+				CollisionState collisions[4] = {};
+				u32 collisionCount;
+				AIState ai = {};
 			};
 
 			enum class TileType : s32 {
@@ -50,9 +86,10 @@ namespace fs {
 			};
 
 			struct Wall {
+				bool isPlatform = false;
+				TileType tileType = TileType::None;
 				Vec2f position = {};
 				Vec2f ext = {};
-				bool isPlatform = false;
 			};
 
 			struct ControlledPlayer {
@@ -166,6 +203,8 @@ namespace fs {
 				std::vector<ControlledPlayer> controlledPlayers = std::vector<ControlledPlayer>();
 
 				Texture tilesetTexture = {};
+
+				RandomSeries enemyEntropy;
 
 				ResultTilePosition FindFreePlayerTile();
 

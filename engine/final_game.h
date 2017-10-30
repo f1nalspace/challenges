@@ -19,8 +19,8 @@ namespace fs {
 			BaseGame() :
 				renderer(nullptr),
 				exitRequested(false),
-				initialWidth(640),
-				initialHeight(360) {
+				initialWidth(1280),
+				initialHeight(720) {
 			}
 			virtual void Init() = 0;
 			virtual void Release() = 0;

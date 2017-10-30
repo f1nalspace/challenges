@@ -115,14 +115,25 @@ namespace fs {
 				return(result);
 			}
 
+			static void NextAIDecision(Entity &enemy, f32 duration, AIState::Type nextType) {
+				enemy.ai.waitRemaingTime = duration;
+				enemy.ai.isWaiting = true;
+				enemy.ai.nextType = nextType;
+			}
+
 			EnemyIndex Game::CreateEnemy(u32 tileX, u32 tileY) {
 				Vec2f enemyCenterOnTile = TileToWorld(tileX, tileY);
 
 				Entity enemy = Entity();
 				enemy.ext = Vec2f(0.3f, 0.3f);
-				enemy.position = enemyCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, enemy.ext.y);
-				enemy.type = EntityType::Enemy;
+				enemy.position = enemyCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, enemy.ext.y + EntityPlaceOffset);
+				enemy.type = Entity::Type::Enemy;
 				enemy.color = Vec4f(1.0f, 0.0f, 1.0f);
+				enemy.horizontalSpeed = 2.0f;
+				enemy.horizontalDrag = 4.0f;
+				enemy.canJump = true;
+				enemy.jumpPower = 120.0f;
+				NextAIDecision(enemy, 1.0f, AIState::Type::DecideDirection);
 
 				u32 result = (u32)enemies.size();
 				enemies.emplace_back(enemy);
@@ -135,10 +146,10 @@ namespace fs {
 				Vec2f playerCenterOnTile = TileToWorld(resultPos.tileX, resultPos.tileY);
 
 				Entity player = Entity();
-				player.type = EntityType::Player;
+				player.type = Entity::Type::Player;
 				player.color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
 				player.ext = Vec2f(0.4f, 0.4f);
-				player.position = playerCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, player.ext.y);
+				player.position = playerCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, player.ext.y + EntityPlaceOffset);
 				player.horizontalSpeed = 20.0f;
 				player.horizontalDrag = 13.0f;
 				player.canJump = true;
@@ -201,10 +212,92 @@ namespace fs {
 				}
 			}
 
+			static bool CanJump(Entity &entity) {
+				bool result = (entity.isGrounded && entity.canJump && entity.jumpCount == 0);
+				return result;
+			}
+
+			static void Jump(Entity &entity) {
+				if (CanJump(entity)) {
+					entity.acceleration.y += 1.0f * entity.jumpPower;
+					entity.moveDirection.y = 1;
+					++entity.jumpCount;
+				}
+			}
+
 			void Game::ProcessEnemyAI(const f32 deltaTime) {
+				constexpr f32 DefaultCoolDown = 0.5f;
+				constexpr f32 JumpCoolDown = 0.05f;
+				constexpr f32 ReflectCoolDown = 0.01f;
+				constexpr f32 ToMoveCoolDown = 0.1f;
+
 				for (u32 enemyIndex = 0; enemyIndex < enemies.size(); ++enemyIndex) {
 					Entity &enemy = enemies[enemyIndex];
-					enemy.velocity = Vec2f(0.5f, 0);
+
+					if (enemy.ai.isWaiting) {
+						enemy.ai.waitRemaingTime -= deltaTime;
+						if (enemy.ai.waitRemaingTime <= 0.0f) {
+							enemy.ai.waitRemaingTime = 0.0f;
+							enemy.ai.isWaiting = false;
+							enemy.ai.activeType = enemy.ai.nextType;
+							enemy.ai.nextType = AIState::Type::None;
+							enemy.ai.activeDuration = 0.0f;
+							enemy.ai.dice = RandomUnilateral(enemyEntropy);
+						}
+						continue;
+					}
+
+					switch (enemy.ai.activeType) {
+						case AIState::Type::Move:
+						{
+							// Decide something when we collide
+							if (enemy.ai.nextType == AIState::Type::None) {
+								for (u32 collisionIndex = 0; collisionIndex < enemy.collisionCount; ++collisionIndex) {
+									CollisionState *collision = enemy.collisions + collisionIndex;
+									Vec2f sideProj = Dot(Vec2f::Right, collision->normal);
+									if (Absolute(sideProj.x) > 0) {
+										NextAIDecision(enemy, ReflectCoolDown, AIState::Type::ReflectDirection);
+										break;
+									}
+								}
+							}
+
+							if (enemy.ai.nextType == AIState::Type::None) {
+								f32 maxDuration = enemy.ai.dice * 10.0f;
+								if (enemy.ai.activeDuration >= maxDuration) {
+									if (CanJump(enemy) && (RandomBetweenInt(enemyEntropy, 1, 10) > 6)) {
+										NextAIDecision(enemy, JumpCoolDown, AIState::Type::Jump);
+									}
+								}
+							}
+
+							Vec2f acc = enemy.moveDirection * enemy.horizontalSpeed;
+							enemy.acceleration += acc;
+						} break;
+
+						case AIState::Type::DecideDirection:
+						{
+							s32 dir = RandomBetweenInt(enemyEntropy, -1, 1);
+							f32 directionX = (dir < 0) ? -1.0f : 1.0f;
+							enemy.moveDirection.x = directionX;
+							NextAIDecision(enemy, ToMoveCoolDown, AIState::Type::Move);
+						} break;
+
+						case AIState::Type::ReflectDirection:
+						{
+							enemy.moveDirection.x = -enemy.moveDirection.x;
+							NextAIDecision(enemy, ToMoveCoolDown, AIState::Type::Move);
+						} break;
+
+						case AIState::Type::Jump:
+						{
+							Jump(enemy);
+							NextAIDecision(enemy, 0.0f, AIState::Type::Move);
+						} break;
+					}
+
+					enemy.ai.activeDuration += deltaTime;
+
 				}
 			}
 
@@ -226,14 +319,15 @@ namespace fs {
 					Entity &player = players[playerIndex];
 					const Controller &playerController = input.controllers[controllerIndex];
 
-					b32 wasGrounded = player.isGrounded;
-
 					// Set acceleration based on player input
+					player.moveDirection = Vec2f();
 					if (!playerController.isAnalog) {
 						if (playerController.moveLeft.isDown) {
 							player.acceleration.x += -1.0f * player.horizontalSpeed;
+							player.moveDirection.x = -1;
 						} else if (playerController.moveRight.isDown) {
 							player.acceleration.x += 1.0f * player.horizontalSpeed;
+							player.moveDirection.x = 1;
 						}
 					} else {
 						if (playerController.analogMovement.x != 0) {
@@ -243,10 +337,7 @@ namespace fs {
 
 					// Jump
 					if (playerController.actionDown.isDown) {
-						if (wasGrounded && player.canJump && player.jumpCount == 0) {
-							player.acceleration.y += 1.0f * player.jumpPower;
-							++player.jumpCount;
-						}
+						Jump(player);
 					}
 				}
 			}
@@ -256,6 +347,7 @@ namespace fs {
 					Entity &entity = entities[entityIndex];
 
 					entity.isGrounded = false;
+					entity.collisionCount = 0;
 
 					// Movement equation:
 					// p' = (a / 2) * dt^2 + v * dt + p
@@ -304,6 +396,7 @@ namespace fs {
 								}
 
 								// @TODO: It works but i would prefered a generic line segment intersection test here
+								// Create line segments for each sides of a tile
 								Vec2f testSideNormal = Vec2f();
 								f32 hitTime = tmin;
 								bool wasHit = false;
@@ -358,6 +451,15 @@ namespace fs {
 									entity.isGrounded = true;
 									entity.jumpCount = 0;
 								}
+
+								// Add collision state
+								assert(entity.collisionCount < utils::ArrayCount(entity.collisions));
+								u32 collisionIndex = entity.collisionCount++;
+								CollisionState *collision = &entity.collisions[collisionIndex];
+								*collision = {};
+								collision->isColliding = true;
+								collision->wall = hitWall;
+								collision->normal = wallNormal;
 							}
 						}
 					}
@@ -375,6 +477,17 @@ namespace fs {
 
 					// Horizontal drag
 					player.acceleration += -Dot(Vec2f::Right, player.velocity) * Vec2f::Right * player.horizontalDrag;
+				}
+
+				for (s32 enemyIndex = 0; enemyIndex < enemies.size(); ++enemyIndex) {
+					Entity &enemy = enemies[enemyIndex];
+					enemy.acceleration = Vec2f();
+
+					// Gravity
+					enemy.acceleration += gravity;
+
+					// Horizontal drag
+					enemy.acceleration += -Dot(Vec2f::Right, enemy.velocity) * Vec2f::Right * enemy.horizontalDrag;
 				}
 			}
 
@@ -655,6 +768,8 @@ namespace fs {
 			}
 
 			void Game::SwitchFromEditorToGame() {
+				enemyEntropy = RandomSeed(1337);
+
 				// Create walls
 				walls.clear();
 				for (u32 y = 0; y < TileCountForHeight; ++y) {
@@ -666,12 +781,14 @@ namespace fs {
 							wall.position = tileWorldPos;
 							wall.ext = TileSize * 0.5f;
 							wall.isPlatform = tile.type == TileType::Platform;
+							wall.tileType = tile.type;
 							walls.emplace_back(wall);
 						}
 					}
 				}
 
 				// Create enemies
+				enemies.clear();
 				for (u32 y = 0; y < TileCountForHeight; ++y) {
 					for (u32 x = 0; x < TileCountForWidth; ++x) {
 						const Tile &tile = tiles[y * TileCountForWidth + x];
@@ -744,14 +861,14 @@ namespace fs {
 					// Draw enemies
 					for (u32 enemyIndex = 0; enemyIndex < enemies.size(); ++enemyIndex) {
 						const Entity &enemy = enemies[enemyIndex];
-						assert(enemy.type == EntityType::Enemy);
+						assert(enemy.type == Entity::Type::Enemy);
 						renderer->DrawRectangle(enemy.position, enemy.ext, enemy.color);
 					}
 
 					// Draw players
 					for (u32 playerIndex = 0; playerIndex < players.size(); ++playerIndex) {
 						const Entity &player = players[playerIndex];
-						assert(player.type == EntityType::Player);
+						assert(player.type == Entity::Type::Player);
 						renderer->DrawRectangle(player.position, player.ext, player.color);
 					}
 				}

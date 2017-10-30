@@ -13,7 +13,7 @@ using namespace fpl::console;
 #include "final_maths.h"
 #include "final_utils.h"
 #include "final_renderer.h"
-#include "final_opengl.h"
+#include "final_openglrenderer.h"
 
 // @TODO: Make this a full game independent platform layer
 #include "game.h"
