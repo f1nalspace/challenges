@@ -12,6 +12,10 @@
 #	include <intrin.h>
 #endif
 
+#define RGBA(r, g, b, a) ((u8)(a) << 24) | ((u8)(b) << 16) | ((u8)(g) << 8) | ((u8)(r) << 0)
+#define RGBAToPixel(rgba) {((rgba) >> 0) & 0xFF, ((rgba) >> 8) & 0xFF, ((rgba) >> 16) & 0xFF, ((rgba) >> 24) & 0xFF}
+#define PixelToRGBA(pixel) RGBAToPixel((pixel).r, (pixel).g, (pixel).b, (pixel).a)
+
 namespace fs {
 	namespace maths {
 		//
@@ -579,6 +583,13 @@ namespace fs {
 			static const Mat4f &Identity;
 		};
 
+		union Pixel {
+			struct {
+				u8 r, g, b, a;
+			};
+			u8 m[4];
+		};
+
 		//
 		// Scalar operations
 		//
@@ -620,13 +631,26 @@ namespace fs {
 
 		template <typename T>
 		inline T Absolute(const T value) {
-			T result = value < 0 ? (-value * 2) : value;
+			T result;
+			if (value < 0) {
+				result = -value;
+			} else {
+				result = value;
+			}
 			return(result);
 		}
 
 		template <typename T>
 		inline bool IsEqual(const T a, const T b, const T tolerance) {
 			bool result = Absolute(a - b) < tolerance;
+			return(result);
+		}
+
+		template <typename T>
+		inline T SignZero(const T value) {
+			T result = 0;
+			if (value < 0) result = -1;
+			else if (value > 0) result = 1;
 			return(result);
 		}
 
@@ -970,7 +994,7 @@ namespace fs {
 		// @NOTE: Fastest SIMD mat4 mult: http://stackoverflow.com/questions/18499971/efficient-4x4-matrix-multiplication-c-vs-assembly
 		inline Mat4f operator *(const Mat4f &a, const Mat4f &b) {
 			Mat4f result = Mat4f(1.0f);
-		#if MATH_ENABLE_SIMD
+#if MATH_ENABLE_SIMD
 			__m128 simd128x4[4];
 			simd128x4[0] = _mm_load_ps(&a.m[0]);
 			simd128x4[1] = _mm_load_ps(&a.m[4]);
@@ -983,14 +1007,14 @@ namespace fs {
 				__m128 brod4 = _mm_set1_ps(b.m[4 * i + 3]);
 				__m128 row = _mm_add_ps(
 					_mm_add_ps(
-						_mm_mul_ps(brod1, simd128x4[0]),
-						_mm_mul_ps(brod2, simd128x4[1])),
+					_mm_mul_ps(brod1, simd128x4[0]),
+					_mm_mul_ps(brod2, simd128x4[1])),
 					_mm_add_ps(
-						_mm_mul_ps(brod3, simd128x4[2]),
-						_mm_mul_ps(brod4, simd128x4[3])));
+					_mm_mul_ps(brod3, simd128x4[2]),
+					_mm_mul_ps(brod4, simd128x4[3])));
 				_mm_store_ps(&result.m[4 * i], row);
 			}
-		#else
+#else
 			for (u32 i = 0; i < 16; i += 4) {
 				for (u32 j = 0; j < 4; ++j) {
 					result.m[i + j] =
@@ -1000,7 +1024,7 @@ namespace fs {
 						+ (b.m[i + 3] * a.m[j + 12]);
 				}
 			}
-		#endif
+#endif
 			return(result);
 		}
 
@@ -1030,6 +1054,33 @@ namespace fs {
 			result.m[14] = mat.col3.w;
 			result.m[15] = mat.col4.w;
 
+			return(result);
+		}
+
+		//
+		// Color
+		//
+
+		constexpr f32 INV255 = 1.0f / 255.0f;
+
+		inline Vec4f AlphaToLinear(u8 alpha) {
+			f32 a = alpha * INV255;
+			Vec4f result = Vec4f(1, 1, 1, a);
+			return(result);
+		}
+
+		inline Vec4f RGBAToLinear(u32 rgba) {
+			Pixel pixel = RGBAToPixel(rgba);
+			Vec4f result = Vec4f(pixel.r * INV255, pixel.g * INV255, pixel.b * INV255, pixel.a * INV255);
+			return(result);
+		}
+
+		inline u32 LinearToRGBA(const Vec4f &linear) {
+			u8 r = (u8)((linear.x * 255.0f) + 0.5f);
+			u8 g = (u8)((linear.y * 255.0f) + 0.5f);
+			u8 b = (u8)((linear.z * 255.0f) + 0.5f);
+			u8 a = (u8)((linear.w * 255.0f) + 0.5f);
+			u32 result = RGBA(r, g, b, a);
 			return(result);
 		}
 	};
