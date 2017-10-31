@@ -15,6 +15,7 @@ namespace fs {
 			Vec2f Unproject(const Vec2i &windowPos) override;
 			void DrawSprite(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const Texture &texture, const Vec2f &uvMin, const Vec2f &uvMax) override;
 			void DrawRectangle(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const bool isFilled) override;
+			void DrawLine(const Vec2f &a, const Vec2f &b, const Vec4f &color) override;
 			OpenGLRenderer() : Renderer() {
 			}
 			~OpenGLRenderer() {

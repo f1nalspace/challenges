@@ -19,6 +19,9 @@ using namespace fs::inputs;
 using namespace fs::renderer;
 using namespace fs::randoms;
 
+#define TEST_ACTIVE 1
+#define TEST_RAYCASTS 1
+
 namespace fs {
 	namespace games {
 		namespace mygame {
@@ -35,6 +38,22 @@ namespace fs {
 			};
 
 			constexpr u32 MAX_LAST_COLLISION_COUNT = 8;
+
+			struct PathNode {
+				Vec2f worldPosition;
+				Vec2i tilePosition;
+				PathNode *closestNodes[8];
+
+				inline bool HasNode(const PathNode *node) {
+					for (u32 nodeIndex = 0; nodeIndex < utils::ArrayCount(closestNodes); ++nodeIndex) {
+						PathNode *testNode = closestNodes[nodeIndex];
+						if (testNode == node) {
+							return true;
+						}
+					}
+					return false;
+				}
+			};
 
 			struct AIState {
 				enum class Type {
@@ -83,6 +102,7 @@ namespace fs {
 				Platform,
 				Player,
 				Enemy,
+				Invalid = 255,
 			};
 
 			struct Wall {
@@ -169,6 +189,19 @@ namespace fs {
 					return(result);
 				}
 
+				inline bool IsSolid(const u32 tileX, const u32 tileY) {
+					bool result = false;
+					if (IsValidTilePosition(tileX, tileY)) {
+						const Tile &tile = GetTile(tileX, tileY);
+						result = (tile.type == TileType::Block) || (tile.type == TileType::Platform);
+					}
+					return(result);
+				}
+				inline bool IsSolid(const Vec2i &tile) {
+					bool result = IsSolid(tile.x, tile.y);
+					return(result);
+				}
+
 				// @Temporary: Move to editor file!
 				std::string activeEditorFilePath = std::string("");
 				bool showSaveDialog = false;
@@ -186,9 +219,29 @@ namespace fs {
 					tiles[index].type = type;
 				}
 
+				inline bool IsValidTilePosition(const s32 x, const s32 y) {
+					bool result = (x >= 0 && x < TileCountForWidth) && (y >= 0 && y < TileCountForHeight);
+					return(result);
+				}
+
+				inline bool IsValidTilePosition(const Vec2i xy) {
+					bool result = IsValidTilePosition(xy.x, xy.y);
+					return(result);
+				}
+
 				inline const Tile &GetTile(const u32 x, const u32 y) const {
 					u32 index = y * TileCountForWidth + x;
 					return(tiles[index]);
+				}
+
+				inline const Tile &GetTile(const Vec2i &xy) const {
+					const Tile &result = GetTile(xy.x, xy.y);
+					return(result);
+				}
+
+				inline TileType GetTileType(const u32 x, const u32 y) const {
+					u32 index = y * TileCountForWidth + x;
+					return(tiles[index].type);
 				}
 
 				Vec2f gravity = Vec2f(0, -4);
@@ -200,11 +253,17 @@ namespace fs {
 				std::vector<Entity> players = std::vector<Entity>();
 				std::vector<Entity> enemies = std::vector<Entity>();
 				std::vector<Wall> walls = std::vector<Wall>();
+				std::vector<PathNode> enemyPath = std::vector<PathNode>();
 				std::vector<ControlledPlayer> controlledPlayers = std::vector<ControlledPlayer>();
 
 				Texture tilesetTexture = {};
 
 				RandomSeries enemyEntropy;
+
+#if TEST_RAYCASTS
+				Vec2f rayStart = Vec2f(0, 0) - Vec2f(TileSize, TileSize) * 0.5f;
+				Vec2f rayEnd = Vec2f(4, -3) - Vec2f(TileSize, TileSize) * 0.5f;
+#endif
 
 				ResultTilePosition FindFreePlayerTile();
 

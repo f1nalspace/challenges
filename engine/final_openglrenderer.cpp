@@ -95,9 +95,22 @@ namespace fs {
 			glTexCoord2f(uvMin.x, uvMax.y); glVertex2f(-ext.w, ext.h);
 			glTexCoord2f(uvMin.x, uvMin.y); glVertex2f(-ext.w, -ext.h);
 			glTexCoord2f(uvMax.x, uvMin.y); glVertex2f(ext.w, -ext.h);
-			glEnd();;
+			glEnd();
 
 			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+
+		void OpenGLRenderer::DrawLine(const Vec2f &a, const Vec2f &b, const Vec4f &color) {
+			Mat4f mvp = viewProjection;
+			glLoadMatrixf(&mvp.m[0]);
+
+			glColor4fv(&color.elements[0]);
+			glLineWidth(1.0f);
+			glBegin(GL_LINES);
+			glVertex2f(a.x, a.y);
+			glVertex2f(b.x, b.y);
+			glEnd();
+			glLineWidth(1.0f);
 		}
 	}
 }

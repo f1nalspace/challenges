@@ -34,6 +34,12 @@ namespace fs {
 				Vec2f normal;
 			};
 
+			struct IntersectionResult {
+				Vec2f normal;
+				f32 tMin;
+				b32 wasHit;
+			};
+
 			// @Temporary: I dont want to unload textures manually, this should happen automatically
 			static void ReleaseTexture(Renderer *renderer, Texture &texture) {
 				GLuint textureId = utils::PointerToValue<GLuint>(texture.handle);
@@ -83,6 +89,9 @@ namespace fs {
 				fpl::window::SetWindowTitle("GameDev Challenge Oct 2017");
 
 				glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
 				// Load textures
 				tilesetTexture = LoadTexture(renderer, "tileset.png");
@@ -119,6 +128,28 @@ namespace fs {
 				enemy.ai.waitRemaingTime = duration;
 				enemy.ai.isWaiting = true;
 				enemy.ai.nextType = nextType;
+			}
+
+			static IntersectionResult GetIntersection(const f32 tmin, const u32 wallSideCount, const WallSide sides[4], const f32 epsilon) {
+
+				IntersectionResult result = {};
+				result.tMin = tmin;
+				for (u64 testSideIndex = 0; testSideIndex < wallSideCount; ++testSideIndex) {
+					const WallSide &testSide = sides[testSideIndex];
+					if (testSide.deltaX != 0.0f) {
+						f32 f = (testSide.plane - testSide.relX) / testSide.deltaX;
+						f32 y = testSide.relY + f*testSide.deltaY;
+						if ((f >= 0.0f) && (result.tMin > f)) {
+							if ((y >= testSide.minY) && (y <= testSide.maxY)) {
+								result.tMin = Maximum(0.0f, f - epsilon);
+								result.normal = testSide.normal;
+								result.wasHit = true;
+							}
+						}
+					}
+				}
+
+				return(result);
 			}
 
 			EnemyIndex Game::CreateEnemy(u32 tileX, u32 tileY) {
@@ -256,17 +287,8 @@ namespace fs {
 									CollisionState *collision = enemy.collisions + collisionIndex;
 									Vec2f sideProj = Dot(Vec2f::Right, collision->normal);
 									if (Absolute(sideProj.x) > 0) {
-										NextAIDecision(enemy, ReflectCoolDown, AIState::Type::ReflectDirection);
+										NextAIDecision(enemy, 0.0f, AIState::Type::ReflectDirection);
 										break;
-									}
-								}
-							}
-
-							if (enemy.ai.nextType == AIState::Type::None) {
-								f32 maxDuration = enemy.ai.dice * 10.0f;
-								if (enemy.ai.activeDuration >= maxDuration) {
-									if (CanJump(enemy) && (RandomBetweenInt(enemyEntropy, 1, 10) > 6)) {
-										NextAIDecision(enemy, JumpCoolDown, AIState::Type::Jump);
 									}
 								}
 							}
@@ -397,30 +419,13 @@ namespace fs {
 
 								// @TODO: It works but i would prefered a generic line segment intersection test here
 								// Create line segments for each sides of a tile
-								Vec2f testSideNormal = Vec2f();
-								f32 hitTime = tmin;
-								bool wasHit = false;
-								for (u64 testSideIndex = 0; testSideIndex < wallSideCount; ++testSideIndex) {
-									WallSide *testSide = testSides + testSideIndex;
-									if (testSide->deltaX != 0.0f) {
-										f32 f = (testSide->plane - testSide->relX) / testSide->deltaX;
-										f32 y = testSide->relY + f*testSide->deltaY;
-										if ((f >= 0.0f) && (hitTime > f)) {
-											if ((y >= testSide->minY) && (y <= testSide->maxY)) {
-												constexpr f32 EpsilonTime = 0.001f;
-												hitTime = Maximum(0.0f, f - EpsilonTime);
-												testSideNormal = testSide->normal;
-												wasHit = true;
-											}
-										}
-									}
-								}
-
-								if (wasHit) {
+								constexpr f32 EpsilonTime = 0.001f;
+								IntersectionResult intersectionResult = GetIntersection(tmin, wallSideCount, testSides, EpsilonTime);
+								if (intersectionResult.wasHit) {
 									// Solid block or one sided platform
 									if ((!wall.isPlatform) || (wall.isPlatform && (Dot(deltaMovement, Vec2f::Up) <= 0))) {
-										tmin = hitTime;
-										wallNormalMin = testSideNormal;
+										tmin = intersectionResult.tMin;
+										wallNormalMin = intersectionResult.normal;
 										hitWallMin = &wall;
 									}
 								}
@@ -774,7 +779,7 @@ namespace fs {
 				walls.clear();
 				for (u32 y = 0; y < TileCountForHeight; ++y) {
 					for (u32 x = 0; x < TileCountForWidth; ++x) {
-						const Tile &tile = tiles[y * TileCountForWidth + x];
+						const Tile &tile = GetTile(x, y);
 						if (tile.type == TileType::Block || tile.type == TileType::Platform) {
 							Vec2f tileWorldPos = TileToWorld(x, y);
 							Wall wall = {};
@@ -791,11 +796,78 @@ namespace fs {
 				enemies.clear();
 				for (u32 y = 0; y < TileCountForHeight; ++y) {
 					for (u32 x = 0; x < TileCountForWidth; ++x) {
-						const Tile &tile = tiles[y * TileCountForWidth + x];
+						const Tile &tile = GetTile(x, y);
 						if (tile.type == TileType::Enemy) {
 							CreateEnemy(x, y);
 						}
 					}
+				}
+
+				// Create path nodes
+				enemyPath.clear();
+				for (u32 y = 0; y < TileCountForHeight; ++y) {
+					for (u32 x = 0; x < TileCountForWidth; ++x) {
+						const Tile &tile = GetTile(x, y);
+						if ((tile.type == TileType::Block) || (tile.type == TileType::Platform)) {
+							if (IsValidTilePosition(x, y + 1) && IsValidTilePosition(x, y + 2)) {
+								TileType typeAbove1 = GetTileType(x, y + 1);
+								TileType typeAbove2 = GetTileType(x, y + 2);
+								if (typeAbove1 != TileType::Platform && typeAbove1 != TileType::Block) {
+									PathNode node = {};
+									node.tilePosition = Vec2i(x, y + 1);
+									node.worldPosition = TileToWorld(node.tilePosition.x, node.tilePosition.y);
+									enemyPath.emplace_back(node);
+								}
+							}
+
+						}
+					}
+				}
+
+				// Compute closest nodes
+				const Vec2f searchDirections[] = {
+					Vec2f(0, 1), // Up
+					Vec2f(-1, 1), // Left-up
+					Vec2f(-1, 0), // Left
+					Vec2f(-1, -1), // Left-down
+					Vec2f(0, -1), // Down
+					Vec2f(1, -1), // Right-Down
+					Vec2f(1, 0), // Right
+					Vec2f(1, 1), // Right-up
+				};
+
+				for (u32 targetNodeIndex = 0; targetNodeIndex < enemyPath.size(); ++targetNodeIndex) {
+					PathNode &targetNode = enemyPath[targetNodeIndex];
+
+					for (u32 dirIndex = 0; dirIndex < utils::ArrayCount(searchDirections); ++dirIndex) {
+						const Vec2f &searchDir = searchDirections[dirIndex];
+
+						PathNode *closestNode = nullptr;
+						f32 closestDistance = F32_MAX;
+						for (u32 sourceNodeIndex = 0; sourceNodeIndex < enemyPath.size(); ++sourceNodeIndex) {
+							if (targetNodeIndex != sourceNodeIndex) {
+								PathNode &sourceNode = enemyPath[sourceNodeIndex];
+
+								// @TODO: Test visibility of tile using a line trace
+								// We dont want to consider nodes which are occluded by blocks.
+
+								Vec2f relativeDistance = sourceNode.worldPosition - targetNode.worldPosition;
+								f32 proj = Dot(searchDir, relativeDistance);
+								if (proj > 0) {
+									if ((closestNode == nullptr) || (proj < closestDistance)) {
+										closestDistance = proj;
+										closestNode = &sourceNode;
+									}
+								}
+							}
+						}
+
+						assert(dirIndex < utils::ArrayCount(targetNode.closestNodes));
+						targetNode.closestNodes[dirIndex] = closestNode;
+
+					}
+
+
 				}
 			}
 
@@ -805,11 +877,11 @@ namespace fs {
 			}
 
 			void Game::HandleInput(const Input &input) {
+				renderer->Update(HalfGameWidth, HalfGameHeight, GameAspect);
+
 				if (isEditor) {
 					EditorUpdate();
 				}
-
-				renderer->Update(HalfGameWidth, HalfGameHeight, GameAspect);
 
 				// Update world mouse position
 				const s32 mouseX = input.mouse.pos.x;
@@ -823,12 +895,23 @@ namespace fs {
 					isEditor = !isEditor;
 				}
 
+#if !TEST_ACTIVE
 				if (!isEditor) {
 					HandleControllerConnections(input);
 				}
+#else
+#	if TEST_RAYCASTS
+				if (!isEditor) {
+					if (input.mouse.left.isDown) {
+						rayEnd = mouseWorldPos;
+					}
+				}
+#	endif
+#endif
 			}
 
 			void Game::Update(const Input &input) {
+#if !TEST_ACTIVE
 				if (!isEditor) {
 					SetExternalForces();
 					ProcessPlayerInput(input);
@@ -838,10 +921,27 @@ namespace fs {
 				} else {
 
 				}
+#endif
+			}
+
+			static void BresenhamLine(int x0, int y0, int x1, int y1, std::vector<Vec2i> &out) {
+				// https://de.wikipedia.org/wiki/Bresenham-Algorithmus
+				int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+				int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+				int err = dx + dy, e2; /* error value e_xy */
+				while (1) {
+					out.emplace_back(Vec2i(x0, y0));
+					if (x0 == x1 && y0 == y1) break;
+					e2 = 2 * err;
+					if (e2 > dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
+					if (e2 < dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
+				}
 			}
 
 			void Game::Render() {
 				renderer->BeginFrame();
+
+#if !TEST_ACTIVE
 
 				const Vec2f tileExt = Vec2f(TileSize * 0.5f);
 
@@ -871,7 +971,98 @@ namespace fs {
 						assert(player.type == Entity::Type::Player);
 						renderer->DrawRectangle(player.position, player.ext, player.color);
 					}
+
+					// Draw path nodes
+					Vec2f nodeExt = Vec2f(TileSize * 0.15);
+					for (u32 nodeIndex = 0; nodeIndex < enemyPath.size(); ++nodeIndex) {
+						const PathNode &node = enemyPath[nodeIndex];
+						renderer->DrawRectangle(node.worldPosition, nodeExt, Vec4f::Blue);
+					}
 				}
+#else
+#	if TEST_RAYCASTS
+				const Vec2f tileExt = Vec2f(TileSize * 0.5f);
+				for (u32 y = 0; y < TileCountForHeight; ++y) {
+					for (u32 x = 0; x < TileCountForWidth; ++x) {
+						const Tile &tile = GetTile(x, y);
+						if (tile.type == TileType::Block || tile.type == TileType::Platform) {
+							Vec2f p = TileToWorld(x, y);
+							renderer->DrawRectangle(p, tileExt, Vec4f::Blue);
+						}
+					}
+				}
+
+				Vec2f delta = rayEnd - rayStart;
+				Vec2f rayDirection = Normalize(delta);
+				f32 rayLength = Length(delta);
+
+				renderer->DrawRectangle(rayStart, tileExt * 0.25f, Vec4f::Green);
+				renderer->DrawRectangle(rayEnd, tileExt * 0.25f, Vec4f::Red);
+				renderer->DrawLine(rayStart, rayEnd, Vec4f::White);
+
+				Vec2f perp = Cross(1.0f, rayDirection);
+
+				const Vec2i offsets[] = {
+					Vec2i(0, 0), // No offset,
+					Vec2i(0, 1), // Up
+					Vec2i(-1, 1), // Left-up
+					Vec2i(-1, 0), // Left
+					Vec2i(-1, -1), // Left-down
+					Vec2i(0, -1), // Down
+					Vec2i(1, -1), // Right-Down
+					Vec2i(1, 0), // Right
+					Vec2i(1, 1), // Right-up
+				};
+
+				std::vector<Vec2i> lineTiles;
+				for (Vec2i offset : offsets) {
+					Vec2i rayStartTilePos = WorldToTile(rayStart) + offset;
+					Vec2i rayEndTilePos = WorldToTile(rayEnd) + offset;
+
+					int x0 = rayStartTilePos.x;
+					int x1 = rayEndTilePos.x;
+					int y0 = rayStartTilePos.y;
+					int y1 = rayEndTilePos.y;
+
+					BresenhamLine(x0, y0, x1, y1, lineTiles);
+				}
+				for (const Vec2i &lineTile : lineTiles) {
+					renderer->DrawRectangle(TileToWorld(lineTile), tileExt, Vec4f(1.0f, 0.0f, 1.0f, 0.5f));
+				}
+
+				f32 tMin = 1.0f;
+				b32 wasHit = false;
+				for (Vec2i lineTile : lineTiles) {
+					if (IsSolid(lineTile)) {
+						Vec2f tilePos = TileToWorld(lineTile);
+						Vec2f e = tileExt;
+						Vec2f rel = rayStart - tilePos;
+						Vec2f minCorner = -e;
+						Vec2f maxCorner = e;
+
+						u32 wallSideCount = 0;
+						WallSide testSides[4];
+
+						testSides[wallSideCount++] = { minCorner.x, rel.x, rel.y, delta.x, delta.y, minCorner.y, maxCorner.y,{ -1, 0 } };
+						testSides[wallSideCount++] = { maxCorner.x, rel.x, rel.y, delta.x, delta.y, minCorner.y, maxCorner.y,{ 1, 0 } };
+						testSides[wallSideCount++] = { minCorner.y, rel.y, rel.x, delta.y, delta.x, minCorner.x, maxCorner.x,{ 0, -1 } };
+						testSides[wallSideCount++] = { maxCorner.y, rel.y, rel.x, delta.y, delta.x, minCorner.x, maxCorner.x,{ 0, 1 } };
+
+						IntersectionResult intersectionResult = GetIntersection(tMin, wallSideCount, testSides, 0.0f);
+						if (intersectionResult.wasHit && intersectionResult.tMin < tMin) {
+							wasHit = true;
+							tMin = intersectionResult.tMin;
+						}
+					}
+				}
+
+				if (wasHit) {
+					Vec2f collisionPoint = rayStart + rayDirection * (rayLength * tMin);
+					renderer->DrawRectangle(collisionPoint, tileExt * 0.2f, Vec4f::Yellow);
+				}
+
+#	endif
+#endif
 
 				renderer->EndFrame();
 			}
