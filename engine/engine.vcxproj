@@ -136,9 +136,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="final_collisions.h" />
     <ClInclude Include="final_game.h" />
     <ClInclude Include="final_input.h" />
     <ClInclude Include="final_maths.h" />
+    <ClInclude Include="final_mem.h" />
     <ClInclude Include="final_openglrenderer.h" />
     <ClInclude Include="final_randoms.h" />
     <ClInclude Include="final_renderer.h" />
@@ -146,6 +148,7 @@
     <ClInclude Include="final_utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="final_collisions.cpp" />
     <ClCompile Include="final_maths.cpp" />
     <ClCompile Include="final_openglrenderer.cpp" />
   </ItemGroup>

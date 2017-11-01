@@ -654,6 +654,12 @@ namespace fs {
 			return(result);
 		}
 
+		template <typename T>
+		inline T SquareRoot(const T value) {
+			T result = (T)sqrt(value);
+			return(result);
+		}
+
 		//
 		// Vec2i functions (Do not depend on the operators)
 		//
@@ -716,7 +722,7 @@ namespace fs {
 			return(result);
 		}
 		inline f32 Length(const Vec2f &vec) {
-			f32 result = (f32)sqrtf(vec.x * vec.x + vec.y * vec.y);
+			f32 result = SquareRoot(vec.x * vec.x + vec.y * vec.y);
 			return(result);
 		}
 
@@ -725,7 +731,7 @@ namespace fs {
 			return(result);
 		}
 		inline f32 Distance(const Vec2f &a, const Vec2f &b) {
-			f32 result = (f32)sqrtf((a.x - b.x) * (a.y - b.y));
+			f32 result = SquareRoot((a.x - b.x) * (a.y - b.y));
 			return(result);
 		}
 
@@ -857,7 +863,7 @@ namespace fs {
 			return(result);
 		}
 		inline f32 Length(const Vec3f &vec) {
-			f32 result = (f32)sqrtf(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+			f32 result = SquareRoot(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 			return(result);
 		}
 
@@ -866,7 +872,7 @@ namespace fs {
 			return(result);
 		}
 		inline f32 Distance(const Vec3f &a, const Vec3f &b) {
-			f32 result = (f32)sqrtf((a.x - b.x) * (a.y - b.y) * (a.z - b.z));
+			f32 result = SquareRoot((a.x - b.x) * (a.y - b.y) * (a.z - b.z));
 			return(result);
 		}
 

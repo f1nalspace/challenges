@@ -10,7 +10,7 @@
 #include <imgui/imgui_internal.h>
 
 #include "final_utils.h"
-#include "final_renderer.h"
+#include "final_mem.h"
 
 using namespace fpl;
 using namespace fpl::window;
@@ -18,27 +18,6 @@ using namespace fpl::window;
 namespace fs {
 	namespace games {
 		namespace mygame {
-
-			struct WallSide {
-				f32 plane;
-				// @NOTE: Relative position in minkowski space
-				f32 relX;
-				f32 relY;
-				// @NOTE: Delta movement
-				f32 deltaX;
-				f32 deltaY;
-				// @NOTE: Min/Max corners
-				f32 minY;
-				f32 maxY;
-				// @NOTE: Surface normal
-				Vec2f normal;
-			};
-
-			struct IntersectionResult {
-				Vec2f normal;
-				f32 tMin;
-				b32 wasHit;
-			};
 
 			// @Temporary: I dont want to unload textures manually, this should happen automatically
 			static void ReleaseTexture(Renderer *renderer, Texture &texture) {
@@ -128,28 +107,6 @@ namespace fs {
 				enemy.ai.waitRemaingTime = duration;
 				enemy.ai.isWaiting = true;
 				enemy.ai.nextType = nextType;
-			}
-
-			static IntersectionResult GetIntersection(const f32 tmin, const u32 wallSideCount, const WallSide sides[4], const f32 epsilon) {
-
-				IntersectionResult result = {};
-				result.tMin = tmin;
-				for (u64 testSideIndex = 0; testSideIndex < wallSideCount; ++testSideIndex) {
-					const WallSide &testSide = sides[testSideIndex];
-					if (testSide.deltaX != 0.0f) {
-						f32 f = (testSide.plane - testSide.relX) / testSide.deltaX;
-						f32 y = testSide.relY + f*testSide.deltaY;
-						if ((f >= 0.0f) && (result.tMin > f)) {
-							if ((y >= testSide.minY) && (y <= testSide.maxY)) {
-								result.tMin = Maximum(0.0f, f - epsilon);
-								result.normal = testSide.normal;
-								result.wasHit = true;
-							}
-						}
-					}
-				}
-
-				return(result);
 			}
 
 			EnemyIndex Game::CreateEnemy(u32 tileX, u32 tileY) {
@@ -401,26 +358,23 @@ namespace fs {
 
 								Vec2f rel = entity.position - wall.position;
 
-								WallSide testSides[4] =
-								{
-									{ minCorner.x, rel.x, rel.y, deltaMovement.x, deltaMovement.y, minCorner.y, maxCorner.y,{ -1, 0 } },
-									{ maxCorner.x, rel.x, rel.y, deltaMovement.x, deltaMovement.y, minCorner.y, maxCorner.y,{ 1, 0 } },
-									{ minCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, -1 } },
-									{ maxCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, 1 } },
-								};
-
-								u32 wallSideCount = 4;
+								DeltaPlane2D testSides[4];
+								u32 sideCount = 0;
+								testSides[sideCount++] = { minCorner.x, rel.x, rel.y, deltaMovement.x, deltaMovement.y, minCorner.y, maxCorner.y,{ -1, 0 } };
+								testSides[sideCount++] = { maxCorner.x, rel.x, rel.y, deltaMovement.x, deltaMovement.y, minCorner.y, maxCorner.y,{ 1, 0 } };
+								testSides[sideCount++] = { minCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, -1 } };
+								testSides[sideCount++] = { maxCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, 1 } };
 
 								if (wall.isPlatform) {
 									// @NOTE: One a platform we just have to test for the upper side.
-									wallSideCount = 1;
+									sideCount = 0;
 									testSides[0] = { maxCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, 1 } };
 								}
 
 								// @TODO: It works but i would prefered a generic line segment intersection test here
 								// Create line segments for each sides of a tile
 								constexpr f32 EpsilonTime = 0.001f;
-								IntersectionResult intersectionResult = GetIntersection(tmin, wallSideCount, testSides, EpsilonTime);
+								IntersectionResult intersectionResult = IntersectLines(tmin, EpsilonTime, sideCount, testSides);
 								if (intersectionResult.wasHit) {
 									// Solid block or one sided platform
 									if ((!wall.isPlatform) || (wall.isPlatform && (Dot(deltaMovement, Vec2f::Up) <= 0))) {
@@ -918,11 +872,11 @@ namespace fs {
 					ProcessEnemyAI(input.deltaTime);
 					MoveEntities(players, input.deltaTime);
 					MoveEntities(enemies, input.deltaTime);
-				} else {
+					} else {
 
 				}
 #endif
-			}
+				}
 
 			static bool Contains(const Vec2i &value, const std::vector<Vec2i> &list) {
 				bool result = false;
@@ -935,44 +889,7 @@ namespace fs {
 				return(result);
 			}
 
-			static void BresenhamLine(int x0, int y0, int x1, int y1, std::vector<Vec2i> &out, float wd) {
-#if 0
-				// https://de.wikipedia.org/wiki/Bresenham-Algorithmus
-				int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-				int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-				int err = dx + dy, e2; /* error value e_xy */
-				while (1) {
-					out.emplace_back(Vec2i(x0, y0));
-					if (x0 == x1 && y0 == y1) break;
-					e2 = 2 * err;
-					if (e2 > dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
-					if (e2 < dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
-				}
-#else
-				int dx = Absolute(x1 - x0), sx = x0 < x1 ? 1 : -1;
-				int dy = Absolute(y1 - y0), sy = y0 < y1 ? 1 : -1;
-				int err = dx - dy, e2, x2, y2;
-				float ed = dx + dy == 0 ? 1 : sqrt((float)dx*dx + (float)dy*dy);
-				for (wd = (wd + 1) / 2; ; ) {
-					out.emplace_back(Vec2i(x0, y0));
-					e2 = err; x2 = x0;
-					// x step
-					if (2 * e2 >= -dx) {
-						for (e2 += dy, y2 = y0; e2 < ed*wd && (y1 != y2 || dx > dy); e2 += dx)
-							out.emplace_back(Vec2i(x0, y2 += sy));
-						if (x0 == x1) break;
-						e2 = err; err -= dy; x0 += sx;
-					}
-					// y step
-					if (2 * e2 <= dy) {
-						for (e2 = dx - e2; e2 < ed*wd && (x1 != x2 || dx < dy); e2 += dy)
-							out.emplace_back(Vec2i(x2 += sx, y0));
-						if (y0 == y1) break;
-						err += dx; y0 += sy;
-					}
-				}
-#endif
-			}
+
 
 			void Game::Render() {
 				renderer->BeginFrame();
@@ -1013,8 +930,8 @@ namespace fs {
 					for (u32 nodeIndex = 0; nodeIndex < enemyPath.size(); ++nodeIndex) {
 						const PathNode &node = enemyPath[nodeIndex];
 						renderer->DrawRectangle(node.worldPosition, nodeExt, Vec4f::Blue);
-					}
-				}
+			}
+		}
 #else
 #	if TEST_RAYCASTS
 				const Vec2f tileExt = Vec2f(TileSize * 0.5f);
@@ -1036,8 +953,6 @@ namespace fs {
 				renderer->DrawRectangle(rayEnd, tileExt * 0.25f, Vec4f::Red);
 				renderer->DrawLine(rayStart, rayEnd, Vec4f::White);
 
-				Vec2f perp = Cross(1.0f, rayDirection);
-
 				std::vector<Vec2i> lineTiles;
 				Vec2i rayStartTilePos = WorldToTile(rayStart);
 				Vec2i rayEndTilePos = WorldToTile(rayEnd);
@@ -1047,7 +962,7 @@ namespace fs {
 				int y0 = rayStartTilePos.y;
 				int y1 = rayEndTilePos.y;
 
-				BresenhamLine(x0, y0, x1, y1, lineTiles, 1.0f);
+				BresenhamLine(x0, y0, x1, y1, 1.0f, lineTiles);
 
 				for (const Vec2i &lineTile : lineTiles) {
 					renderer->DrawRectangle(TileToWorld(lineTile), tileExt, Vec4f(1.0f, 0.0f, 1.0f, 0.5f));
@@ -1058,23 +973,22 @@ namespace fs {
 				for (Vec2i lineTile : lineTiles) {
 					if (IsSolid(lineTile)) {
 						Vec2f tilePos = TileToWorld(lineTile);
-						Vec2f e = tileExt;
 						Vec2f rel = rayStart - tilePos;
-						Vec2f minCorner = -e;
-						Vec2f maxCorner = e;
 
-						u32 wallSideCount = 0;
-						WallSide testSides[4];
+						Quad quad = {};
+						quad.center = tilePos;
+						quad.ext = tileExt;
 
-						testSides[wallSideCount++] = { minCorner.x, rel.x, rel.y, delta.x, delta.y, minCorner.y, maxCorner.y,{ -1, 0 } };
-						testSides[wallSideCount++] = { maxCorner.x, rel.x, rel.y, delta.x, delta.y, minCorner.y, maxCorner.y,{ 1, 0 } };
-						testSides[wallSideCount++] = { minCorner.y, rel.y, rel.x, delta.y, delta.x, minCorner.x, maxCorner.x,{ 0, -1 } };
-						testSides[wallSideCount++] = { maxCorner.y, rel.y, rel.x, delta.y, delta.x, minCorner.x, maxCorner.x,{ 0, 1 } };
+						Ray2D ray = {};
+						ray.tMin = tMin;
+						ray.start = rayStart;
+						ray.direction = rayDirection;
+						ray.length = rayLength;
 
-						IntersectionResult intersectionResult = GetIntersection(tMin, wallSideCount, testSides, 0.0f);
-						if (intersectionResult.wasHit && intersectionResult.tMin < tMin) {
+						LineCastResult castResult = LineCastQuad(ray, quad);
+						if (castResult.isHit && castResult.tMin < tMin) {
 							wasHit = true;
-							tMin = intersectionResult.tMin;
+							tMin = castResult.tMin;
 						}
 					}
 				}
@@ -1088,13 +1002,13 @@ namespace fs {
 #endif
 
 				renderer->EndFrame();
-			}
+	}
 
 			Game::Game() : BaseGame() {
 			}
 
 			Game::~Game() {
 			}
-		}
+}
 	}
 }

@@ -13,11 +13,13 @@
 #include "final_renderer.h"
 #include "final_game.h"
 #include "final_randoms.h"
+#include "final_collisions.h"
 
 using namespace fs::maths;
 using namespace fs::inputs;
 using namespace fs::renderer;
 using namespace fs::randoms;
+using namespace fs::collisions;
 
 #define TEST_ACTIVE 1
 #define TEST_RAYCASTS 1
