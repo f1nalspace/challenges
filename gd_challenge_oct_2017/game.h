@@ -21,7 +21,7 @@ using namespace fs::renderer;
 using namespace fs::randoms;
 using namespace fs::collisions;
 
-#define TEST_ACTIVE 1
+#define TEST_ACTIVE 0
 #define TEST_RAYCASTS 1
 
 namespace fs {
@@ -152,25 +152,27 @@ namespace fs {
 				s32 tileY;
 			};
 
-			static constexpr f32 TileSize = 0.5f;
-			static constexpr u32 TileCountForWidth = 40;
-			static constexpr u32 TileCountForHeight = 22;
-			static constexpr f32 GameAspect = TileCountForWidth / (f32)TileCountForHeight;
-			static constexpr f32 GameWidth = TileCountForWidth * TileSize;
-			static constexpr f32 GameHeight = GameWidth / GameAspect;
-			static constexpr f32 HalfGameWidth = GameWidth * 0.5f;
-			static constexpr f32 HalfGameHeight = GameHeight * 0.5f;
-			static constexpr char MapMagicId[4] = { 'f', 'm', 'a', 'p' };
+			static constexpr f32 TILE_SIZE = 0.5f;
+			static constexpr u32 TILE_COUNT_FOR_WIDTH = 40;
+			static constexpr u32 TILE_COUNT_FOR_HEIGHT = 22;
+			static constexpr f32 GAME_ASPECT = TILE_COUNT_FOR_WIDTH / (f32)TILE_COUNT_FOR_HEIGHT;
+			static constexpr f32 GAME_WIDTH = TILE_COUNT_FOR_WIDTH * TILE_SIZE;
+			static constexpr f32 GAME_HEIGHT = GAME_WIDTH / GAME_ASPECT;
+			static constexpr f32 HALF_GAME_WIDTH = GAME_WIDTH * 0.5f;
+			static constexpr f32 HALF_GAME_HEIGHT = GAME_HEIGHT * 0.5f;
+			static constexpr char MAP_MAGIC_ID[4] = { 'f', 'm', 'a', 'p' };
+
+			static const Vec2f TILE_EXT = Vec2f(TILE_SIZE, TILE_SIZE) * 0.5f;
 
 			typedef u32 PlayerIndex;
 			typedef u32 EnemyIndex;
 
 			struct Game : BaseGame {
 				inline Vec2f TileToWorld(const s32 tileX, const s32 tileY) const {
-					const Vec2f tileMapExt = Vec2f((f32)TileCountForWidth * TileSize, (f32)TileCountForHeight * TileSize) * 0.5f;
+					const Vec2f tileMapExt = Vec2f((f32)TILE_COUNT_FOR_WIDTH * TILE_SIZE, (f32)TILE_COUNT_FOR_HEIGHT * TILE_SIZE) * 0.5f;
 					Vec2f result = -tileMapExt +
-						Vec2f((f32)tileX, (f32)tileY) * TileSize +
-						TileSize * 0.5f;
+						Vec2f((f32)tileX, (f32)tileY) * TILE_SIZE +
+						TILE_SIZE * 0.5f;
 					return(result);
 				}
 				inline Vec2f TileToWorld(const Vec2i &tilePos) const {
@@ -179,9 +181,9 @@ namespace fs {
 				}
 
 				inline Vec2i WorldToTile(const f32 worldX, const f32 worldY) const {
-					const Vec2f tileMapExt = Vec2f((f32)TileCountForWidth * TileSize, (f32)TileCountForHeight * TileSize) * 0.5f;
-					s32 tileX = (s32)((worldX + tileMapExt.w) / TileSize);
-					s32 tileY = (s32)((worldY + tileMapExt.h) / TileSize);
+					const Vec2f tileMapExt = Vec2f((f32)TILE_COUNT_FOR_WIDTH * TILE_SIZE, (f32)TILE_COUNT_FOR_HEIGHT * TILE_SIZE) * 0.5f;
+					s32 tileX = (s32)((worldX + tileMapExt.w) / TILE_SIZE);
+					s32 tileY = (s32)((worldY + tileMapExt.h) / TILE_SIZE);
 					Vec2i result = Vec2i(tileX, tileY);
 					return(result);
 				}
@@ -213,16 +215,16 @@ namespace fs {
 
 				TileType selectedTileType = TileType::None;
 
-				std::vector<Tile> tiles = std::vector<Tile>(TileCountForWidth * TileCountForHeight);
+				std::vector<Tile> tiles = std::vector<Tile>(TILE_COUNT_FOR_WIDTH * TILE_COUNT_FOR_HEIGHT);
 
 				inline void SetTile(const u32 x, const u32 y, const TileType type) {
-					u32 index = y * TileCountForWidth + x;
+					u32 index = y * TILE_COUNT_FOR_WIDTH + x;
 					assert(index < tiles.size());
 					tiles[index].type = type;
 				}
 
 				inline bool IsValidTilePosition(const s32 x, const s32 y) {
-					bool result = (x >= 0 && x < TileCountForWidth) && (y >= 0 && y < TileCountForHeight);
+					bool result = (x >= 0 && x < TILE_COUNT_FOR_WIDTH) && (y >= 0 && y < TILE_COUNT_FOR_HEIGHT);
 					return(result);
 				}
 
@@ -232,7 +234,7 @@ namespace fs {
 				}
 
 				inline const Tile &GetTile(const u32 x, const u32 y) const {
-					u32 index = y * TileCountForWidth + x;
+					u32 index = y * TILE_COUNT_FOR_WIDTH + x;
 					return(tiles[index]);
 				}
 
@@ -242,7 +244,7 @@ namespace fs {
 				}
 
 				inline TileType GetTileType(const u32 x, const u32 y) const {
-					u32 index = y * TileCountForWidth + x;
+					u32 index = y * TILE_COUNT_FOR_WIDTH + x;
 					return(tiles[index].type);
 				}
 
@@ -262,10 +264,14 @@ namespace fs {
 
 				RandomSeries enemyEntropy;
 
-#if TEST_RAYCASTS
-				Vec2f rayStart = Vec2f(0, 0) - Vec2f(TileSize, TileSize) * 0.5f;
-				Vec2f rayEnd = Vec2f(4, -3) - Vec2f(TileSize, TileSize) * 0.5f;
-#endif
+			#if TEST_ACTIVE
+			#	if TEST_RAYCASTS
+				Vec2f rayStart = Vec2f(0, 0) - Vec2f(TILE_SIZE, TILE_SIZE) * 0.5f;
+				Vec2f rayEnd = Vec2f(4, -3) - Vec2f(TILE_SIZE, TILE_SIZE) * 0.5f;
+			#	endif
+			#endif
+
+				LineCastResult DoLineCast(const Ray2D &ray);
 
 				ResultTilePosition FindFreePlayerTile();
 
@@ -280,7 +286,7 @@ namespace fs {
 				void ClearMap();
 				bool LoadMap(const char *filePath);
 				void SaveMap(const char *filePath);
-				void SwitchFromEditorToGame();
+				void Reload();
 
 				void HandleControllerConnections(const Input &input);
 				void ProcessPlayerInput(const Input &input);

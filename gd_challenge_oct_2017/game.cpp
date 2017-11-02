@@ -78,7 +78,7 @@ namespace fs {
 				// Load test level
 				constexpr char *testLevel = "test.map";
 				if (LoadMap(testLevel)) {
-					SwitchFromEditorToGame();
+					Reload();
 					activeEditorFilePath = testLevel;
 				}
 
@@ -87,8 +87,8 @@ namespace fs {
 			ResultTilePosition Game::FindFreePlayerTile() {
 				ResultTilePosition result = {};
 
-				for (u32 tileY = 0; tileY < TileCountForHeight; ++tileY) {
-					for (u32 tileX = 0; tileX < TileCountForWidth; ++tileX) {
+				for (u32 tileY = 0; tileY < TILE_COUNT_FOR_HEIGHT; ++tileY) {
+					for (u32 tileX = 0; tileX < TILE_COUNT_FOR_WIDTH; ++tileX) {
 						const Tile &tile = GetTile(tileX, tileY);
 						if (tile.type == TileType::Player) {
 							// @TODO: Find tile where is most far away from existing entities
@@ -114,7 +114,7 @@ namespace fs {
 
 				Entity enemy = Entity();
 				enemy.ext = Vec2f(0.3f, 0.3f);
-				enemy.position = enemyCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, enemy.ext.y + EntityPlaceOffset);
+				enemy.position = enemyCenterOnTile - Vec2f(0, TILE_SIZE * 0.5f) + Vec2f(0, enemy.ext.y + EntityPlaceOffset);
 				enemy.type = Entity::Type::Enemy;
 				enemy.color = Vec4f(1.0f, 0.0f, 1.0f);
 				enemy.horizontalSpeed = 2.0f;
@@ -137,7 +137,7 @@ namespace fs {
 				player.type = Entity::Type::Player;
 				player.color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
 				player.ext = Vec2f(0.4f, 0.4f);
-				player.position = playerCenterOnTile - Vec2f(0, TileSize * 0.5f) + Vec2f(0, player.ext.y + EntityPlaceOffset);
+				player.position = playerCenterOnTile - Vec2f(0, TILE_SIZE * 0.5f) + Vec2f(0, player.ext.y + EntityPlaceOffset);
 				player.horizontalSpeed = 20.0f;
 				player.horizontalDrag = 13.0f;
 				player.canJump = true;
@@ -367,7 +367,7 @@ namespace fs {
 
 								if (wall.isPlatform) {
 									// @NOTE: One a platform we just have to test for the upper side.
-									sideCount = 0;
+									sideCount = 1;
 									testSides[0] = { maxCorner.y, rel.y, rel.x, deltaMovement.y, deltaMovement.x, minCorner.x, maxCorner.x,{ 0, 1 } };
 								}
 
@@ -531,7 +531,7 @@ namespace fs {
 					Vec2f canvasMin = Vec2f(minRegion.x, maxRegion.y);
 					Vec2f canvasMax = Vec2f(maxRegion.x, minRegion.y);
 
-					RenderArea canvasArea = CalculateRenderArea(-Vec2f(HalfGameWidth, HalfGameHeight), Vec2f(HalfGameWidth, HalfGameHeight), canvasMin, canvasMax, true);
+					RenderArea canvasArea = CalculateRenderArea(-Vec2f(HALF_GAME_WIDTH, HALF_GAME_HEIGHT), Vec2f(HALF_GAME_WIDTH, HALF_GAME_HEIGHT), canvasMin, canvasMax, true);
 
 					ImVec2 actualCanvasMin = ImVec2(canvasArea.targetMin.x, canvasArea.targetMin.y);
 					ImVec2 actualCanvasMax = ImVec2(canvasArea.targetMax.x, canvasArea.targetMax.y);
@@ -540,17 +540,17 @@ namespace fs {
 					ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
 					// Draw tiles
-					for (u32 y = 0; y < TileCountForHeight; ++y) {
-						for (u32 x = 0; x < TileCountForWidth; ++x) {
-							const Tile &tile = tiles[y * TileCountForWidth + x];
+					for (u32 y = 0; y < TILE_COUNT_FOR_HEIGHT; ++y) {
+						for (u32 x = 0; x < TILE_COUNT_FOR_WIDTH; ++x) {
+							const Tile &tile = tiles[y * TILE_COUNT_FOR_WIDTH + x];
 							if (tile.type != TileType::None) {
 								s32 tileTypeIndex = (s32)tile.type;
 								Vec2f uvMax = TileUVs[tileTypeIndex * 2 + 0];
 								Vec2f uvMin = TileUVs[tileTypeIndex * 2 + 1];
 
-								Vec2f tilePos = TileToWorld(x, y) - Vec2f(TileSize * 0.5f);
+								Vec2f tilePos = TileToWorld(x, y) - Vec2f(TILE_SIZE * 0.5f);
 								Vec2f a = canvasArea.Project(tilePos);
-								Vec2f b = canvasArea.Project(tilePos + Vec2f(TileSize));
+								Vec2f b = canvasArea.Project(tilePos + Vec2f(TILE_SIZE));
 								ImTextureID texId = tilesetTexture.handle;
 								draw_list->AddImage(texId, ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImVec2(uvMin.x, uvMin.y), ImVec2(uvMax.x, uvMax.y));
 							}
@@ -574,9 +574,9 @@ namespace fs {
 					if (ImGui::IsWindowFocused() && canvasRect.Contains(mp)) {
 						Vec2f p = canvasArea.Unproject(Vec2f(mp.x, mp.y));
 						Vec2i hoverTile = WorldToTile(p);
-						Vec2f tilePos = TileToWorld(hoverTile) - Vec2f(TileSize) * 0.5f;
+						Vec2f tilePos = TileToWorld(hoverTile) - Vec2f(TILE_SIZE) * 0.5f;
 						Vec2f a = canvasArea.Project(tilePos);
-						Vec2f b = canvasArea.Project(tilePos + Vec2f(TileSize));
+						Vec2f b = canvasArea.Project(tilePos + Vec2f(TILE_SIZE));
 
 						if (selectedTileType != TileType::None) {
 							// @TODO: This is the same code as drawing a tile in the loop, make a function!
@@ -688,14 +688,14 @@ namespace fs {
 				if (fileHandle.isValid) {
 					u32 read;
 					char magic[4] = {};
-					assert(sizeof(MapMagicId) == sizeof(magic));
+					assert(sizeof(MAP_MAGIC_ID) == sizeof(magic));
 					read = files::ReadFileBlock32(fileHandle, sizeof(magic), &magic, sizeof(magic));
-					assert(read == sizeof(magic) && (strncmp(MapMagicId, magic, utils::ArrayCount(MapMagicId)) == 0));
+					assert(read == sizeof(magic) && (strncmp(MAP_MAGIC_ID, magic, utils::ArrayCount(MAP_MAGIC_ID)) == 0));
 
 					ClearMap();
 
 					u32 tileCount = 0;
-					const u32 maxTileCount = TileCountForWidth * TileCountForHeight;
+					const u32 maxTileCount = TILE_COUNT_FOR_WIDTH * TILE_COUNT_FOR_HEIGHT;
 					read = files::ReadFileBlock32(fileHandle, sizeof(tileCount), &tileCount, sizeof(tileCount));
 					assert(read == sizeof(tileCount) && tileCount == maxTileCount);
 
@@ -713,12 +713,12 @@ namespace fs {
 			void Game::SaveMap(const char *filePath) {
 				auto fileHandle = files::CreateBinaryFile(filePath);
 				if (fileHandle.isValid) {
-					files::WriteFileBlock32(fileHandle, (void *)&MapMagicId, sizeof(MapMagicId));
-					u32 tileCount = TileCountForWidth * TileCountForHeight;
+					files::WriteFileBlock32(fileHandle, (void *)&MAP_MAGIC_ID, sizeof(MAP_MAGIC_ID));
+					u32 tileCount = TILE_COUNT_FOR_WIDTH * TILE_COUNT_FOR_HEIGHT;
 					files::WriteFileBlock32(fileHandle, &tileCount, sizeof(tileCount));
-					for (u32 tileY = 0; tileY < TileCountForHeight; ++tileY) {
-						for (u32 tileX = 0; tileX < TileCountForWidth; ++tileX) {
-							Tile tile = tiles[tileY * TileCountForWidth + tileX];
+					for (u32 tileY = 0; tileY < TILE_COUNT_FOR_HEIGHT; ++tileY) {
+						for (u32 tileX = 0; tileX < TILE_COUNT_FOR_WIDTH; ++tileX) {
+							Tile tile = tiles[tileY * TILE_COUNT_FOR_WIDTH + tileX];
 							files::WriteFileBlock32(fileHandle, &tile, sizeof(tile));
 						}
 					}
@@ -726,19 +726,19 @@ namespace fs {
 				}
 			}
 
-			void Game::SwitchFromEditorToGame() {
+			void Game::Reload() {
 				enemyEntropy = RandomSeed(1337);
 
 				// Create walls
 				walls.clear();
-				for (u32 y = 0; y < TileCountForHeight; ++y) {
-					for (u32 x = 0; x < TileCountForWidth; ++x) {
+				for (u32 y = 0; y < TILE_COUNT_FOR_HEIGHT; ++y) {
+					for (u32 x = 0; x < TILE_COUNT_FOR_WIDTH; ++x) {
 						const Tile &tile = GetTile(x, y);
 						if (tile.type == TileType::Block || tile.type == TileType::Platform) {
 							Vec2f tileWorldPos = TileToWorld(x, y);
 							Wall wall = {};
 							wall.position = tileWorldPos;
-							wall.ext = TileSize * 0.5f;
+							wall.ext = TILE_SIZE * 0.5f;
 							wall.isPlatform = tile.type == TileType::Platform;
 							wall.tileType = tile.type;
 							walls.emplace_back(wall);
@@ -748,8 +748,8 @@ namespace fs {
 
 				// Create enemies
 				enemies.clear();
-				for (u32 y = 0; y < TileCountForHeight; ++y) {
-					for (u32 x = 0; x < TileCountForWidth; ++x) {
+				for (u32 y = 0; y < TILE_COUNT_FOR_HEIGHT; ++y) {
+					for (u32 x = 0; x < TILE_COUNT_FOR_WIDTH; ++x) {
 						const Tile &tile = GetTile(x, y);
 						if (tile.type == TileType::Enemy) {
 							CreateEnemy(x, y);
@@ -759,10 +759,9 @@ namespace fs {
 
 				// Create path nodes
 				enemyPath.clear();
-				for (u32 y = 0; y < TileCountForHeight; ++y) {
-					for (u32 x = 0; x < TileCountForWidth; ++x) {
-						const Tile &tile = GetTile(x, y);
-						if ((tile.type == TileType::Block) || (tile.type == TileType::Platform)) {
+				for (u32 y = 0; y < TILE_COUNT_FOR_HEIGHT; ++y) {
+					for (u32 x = 0; x < TILE_COUNT_FOR_WIDTH; ++x) {
+						if (IsSolid(x, y)) {
 							if (IsValidTilePosition(x, y + 1) && IsValidTilePosition(x, y + 2)) {
 								TileType typeAbove1 = GetTileType(x, y + 1);
 								TileType typeAbove2 = GetTileType(x, y + 2);
@@ -773,7 +772,6 @@ namespace fs {
 									enemyPath.emplace_back(node);
 								}
 							}
-
 						}
 					}
 				}
@@ -801,16 +799,20 @@ namespace fs {
 						for (u32 sourceNodeIndex = 0; sourceNodeIndex < enemyPath.size(); ++sourceNodeIndex) {
 							if (targetNodeIndex != sourceNodeIndex) {
 								PathNode &sourceNode = enemyPath[sourceNodeIndex];
-
-								// @TODO: Test visibility of tile using a line trace
-								// We dont want to consider nodes which are occluded by blocks.
-
+								
 								Vec2f relativeDistance = sourceNode.worldPosition - targetNode.worldPosition;
-								f32 proj = Dot(searchDir, relativeDistance);
-								if (proj > 0) {
-									if ((closestNode == nullptr) || (proj < closestDistance)) {
-										closestDistance = proj;
-										closestNode = &sourceNode;
+
+								Ray2D ray = Ray2D(targetNode.worldPosition, sourceNode.worldPosition, 1.0f);
+
+								LineCastResult lineCast = DoLineCast(ray);
+
+								if (!lineCast.isHit) {
+									f32 proj = Dot(searchDir, relativeDistance);
+									if (proj > 0) {
+										if ((closestNode == nullptr) || (proj < closestDistance)) {
+											closestDistance = proj;
+											closestNode = &sourceNode;
+										}
 									}
 								}
 							}
@@ -821,7 +823,6 @@ namespace fs {
 
 					}
 
-
 				}
 			}
 
@@ -831,7 +832,7 @@ namespace fs {
 			}
 
 			void Game::HandleInput(const Input &input) {
-				renderer->Update(HalfGameWidth, HalfGameHeight, GameAspect);
+				renderer->Update(HALF_GAME_WIDTH, HALF_GAME_HEIGHT, GAME_ASPECT);
 
 				// Update world mouse position
 				const s32 mouseX = input.mouse.pos.x;
@@ -844,59 +845,74 @@ namespace fs {
 
 				if (input.keyboard.editorToggle.WasPressed()) {
 					if (isEditor) {
-						SwitchFromEditorToGame();
+						Reload();
 					}
 					isEditor = !isEditor;
 				}
 
-#if !TEST_ACTIVE
+			#if !TEST_ACTIVE
 				if (!isEditor) {
 					HandleControllerConnections(input);
 				}
-#else
-#	if TEST_RAYCASTS
+			#else
+			#	if TEST_RAYCASTS
 				if (!isEditor) {
 					if (input.mouse.left.isDown) {
 						rayEnd = mouseWorldPos;
 					}
 				}
-#	endif
-#endif
-			}
+			#	endif
+			#endif
+				}
 
 			void Game::Update(const Input &input) {
-#if !TEST_ACTIVE
+			#if !TEST_ACTIVE
 				if (!isEditor) {
 					SetExternalForces();
 					ProcessPlayerInput(input);
 					ProcessEnemyAI(input.deltaTime);
 					MoveEntities(players, input.deltaTime);
 					MoveEntities(enemies, input.deltaTime);
-					} else {
+				} else {
 
 				}
-#endif
-				}
-
-			static bool Contains(const Vec2i &value, const std::vector<Vec2i> &list) {
-				bool result = false;
-				for (const Vec2i &test : list) {
-					if (IsEqual(value, test)) {
-						result = true;
-						break;
-					}
-				}
-				return(result);
+			#endif
 			}
 
+			LineCastResult Game::DoLineCast(const Ray2D &ray) {
+				LineCastResult result = {};
 
+				std::vector<Vec2i> lineTiles;
+				Vec2i startTilePos = WorldToTile(ray.start);
+				Vec2i endTilePos = WorldToTile(ray.end);
+				BresenhamLine(startTilePos.x, startTilePos.y, endTilePos.x, endTilePos.y, 1.0f, lineTiles);
+
+				result.tMin = 1.0f;
+				for (Vec2i lineTile : lineTiles) {
+					if (IsSolid(lineTile)) {
+						Vec2f tilePos = TileToWorld(lineTile);
+						Vec2f rel = ray.start - tilePos;
+
+						Quad quad = {};
+						quad.center = tilePos;
+						quad.ext = TILE_EXT;
+
+						LineCastResult castResult = LineCastQuad(ray, quad);
+						if (castResult.isHit && castResult.tMin < result.tMin) {
+							result.isHit = true;
+							result.tMin = castResult.tMin;
+							result.surfaceNormal = castResult.surfaceNormal;
+						}
+					}
+				}
+
+				return(result);
+			}
 
 			void Game::Render() {
 				renderer->BeginFrame();
 
-#if !TEST_ACTIVE
-
-				const Vec2f tileExt = Vec2f(TileSize * 0.5f);
+			#if !TEST_ACTIVE
 
 				if (!isEditor) {
 					// Draw walls
@@ -926,21 +942,20 @@ namespace fs {
 					}
 
 					// Draw path nodes
-					Vec2f nodeExt = Vec2f(TileSize * 0.15);
+					Vec2f nodeExt = Vec2f(TILE_SIZE * 0.15);
 					for (u32 nodeIndex = 0; nodeIndex < enemyPath.size(); ++nodeIndex) {
 						const PathNode &node = enemyPath[nodeIndex];
 						renderer->DrawRectangle(node.worldPosition, nodeExt, Vec4f::Blue);
-			}
-		}
-#else
-#	if TEST_RAYCASTS
-				const Vec2f tileExt = Vec2f(TileSize * 0.5f);
-				for (u32 y = 0; y < TileCountForHeight; ++y) {
-					for (u32 x = 0; x < TileCountForWidth; ++x) {
+					}
+				}
+			#else
+			#	if TEST_RAYCASTS
+				for (u32 y = 0; y < TILE_COUNT_FOR_HEIGHT; ++y) {
+					for (u32 x = 0; x < TILE_COUNT_FOR_WIDTH; ++x) {
 						const Tile &tile = GetTile(x, y);
 						if (tile.type == TileType::Block || tile.type == TileType::Platform) {
 							Vec2f p = TileToWorld(x, y);
-							renderer->DrawRectangle(p, tileExt, Vec4f::Blue);
+							renderer->DrawRectangle(p, TILE_EXT, Vec4f::Blue);
 						}
 					}
 				}
@@ -949,8 +964,8 @@ namespace fs {
 				Vec2f rayDirection = Normalize(delta);
 				f32 rayLength = Length(delta);
 
-				renderer->DrawRectangle(rayStart, tileExt * 0.25f, Vec4f::Green);
-				renderer->DrawRectangle(rayEnd, tileExt * 0.25f, Vec4f::Red);
+				renderer->DrawRectangle(rayStart, TILE_EXT * 0.25f, Vec4f::Green);
+				renderer->DrawRectangle(rayEnd, TILE_EXT * 0.25f, Vec4f::Red);
 				renderer->DrawLine(rayStart, rayEnd, Vec4f::White);
 
 				std::vector<Vec2i> lineTiles;
@@ -965,7 +980,7 @@ namespace fs {
 				BresenhamLine(x0, y0, x1, y1, 1.0f, lineTiles);
 
 				for (const Vec2i &lineTile : lineTiles) {
-					renderer->DrawRectangle(TileToWorld(lineTile), tileExt, Vec4f(1.0f, 0.0f, 1.0f, 0.5f));
+					renderer->DrawRectangle(TileToWorld(lineTile), TILE_EXT, Vec4f(1.0f, 0.0f, 1.0f, 0.5f));
 				}
 
 				f32 tMin = 1.0f;
@@ -977,7 +992,7 @@ namespace fs {
 
 						Quad quad = {};
 						quad.center = tilePos;
-						quad.ext = tileExt;
+						quad.ext = TILE_EXT;
 
 						Ray2D ray = {};
 						ray.tMin = tMin;
@@ -995,20 +1010,22 @@ namespace fs {
 
 				if (wasHit) {
 					Vec2f collisionPoint = rayStart + rayDirection * (rayLength * tMin);
-					renderer->DrawRectangle(collisionPoint, tileExt * 0.2f, Vec4f::Yellow);
+					renderer->DrawRectangle(collisionPoint, TILE_EXT * 0.2f, Vec4f::Yellow);
 				}
 
-#	endif
-#endif
+			#	else
+			#		error "Invalid test!"
+			#	endif
+			#endif
 
 				renderer->EndFrame();
-	}
+				}
 
 			Game::Game() : BaseGame() {
 			}
 
 			Game::~Game() {
 			}
-}
-	}
-}
+			}
+			}
+		}

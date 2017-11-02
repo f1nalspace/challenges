@@ -9,10 +9,21 @@ using namespace fs::maths;
 namespace fs {
 	namespace collisions {
 		struct Ray2D {
-			f32 tMin;
 			Vec2f start;
-			Vec2f direction;
-			f32 length;
+			Vec2f end;
+			f32 tMin;
+
+			Ray2D(const Vec2f &start, const Vec2f &end, const f32 tMin) {
+				this->start = start;
+				this->end = end;
+				this->tMin = tMin;
+			}
+
+			Ray2D(const Vec2f &start, const Vec2f &direction, const f32 length, const f32 tMin) {
+				this->start = start;
+				this->end = start + direction * length;
+				this->tMin = tMin;
+			}
 		};
 
 		struct Quad {

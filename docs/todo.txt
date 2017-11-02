@@ -1,15 +1,12 @@
 Todo-List:
 
-- Fast quad and sprite rendering using a vertex buffer
-- Move to a tilemap based level system for rendering and creating the walls and platforms
-	-> Use bitmaps for tile editor for now
-- Drawing actual sprites for the level (Use the sprites from leverman and make it 16 palette ones)
-	- Sprite animations!
-- Make first collectible
 - Make first enemy and play around with AI
+
+- Fast quad and sprite rendering using a vertex buffer
+- Entity sprites
+- Sprite animations
+- Make first collectible
 - Shooting bubbles with the ability to stand on
-- Render debug infos on the screen with a history thingy
-- Debug quake like console?
 - Menu for starting and exiting the game
 - Options menu for toggling sound, setting volume.
 - Play sounds and music (required XAudio support in FPL)

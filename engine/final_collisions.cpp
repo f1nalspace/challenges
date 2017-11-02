@@ -54,7 +54,7 @@ namespace fs {
 			LineCastResult result = {};
 			result.tMin = ray.tMin;
 
-			Vec2f delta = ray.direction * ray.length;
+			Vec2f delta = ray.end - ray.start;
 			Vec2f rel = ray.start - quad.center;
 			Vec2f minCorner = -quad.ext;
 			Vec2f maxCorner = quad.ext;
