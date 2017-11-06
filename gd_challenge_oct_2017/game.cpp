@@ -620,7 +620,7 @@ namespace fs {
 								showSaveDialog = autoOk = false;
 
 								activeEditorFilePath = mapNameBuffer;
-								activeEditorFilePath = paths::ChangeFileExtension(mapNameBuffer, (u32)utils::ArrayCount(mapNameBuffer), activeEditorFilePath.c_str(), ".map");
+								activeEditorFilePath = paths::ChangeFileExtension(activeEditorFilePath.c_str(), ".map", mapNameBuffer, (u32)utils::ArrayCount(mapNameBuffer));
 								SaveMap(activeEditorFilePath.c_str());
 							}
 							ImGui::SameLine();
@@ -655,7 +655,7 @@ namespace fs {
 								showOpenDialog = loadMapAuto = false;
 
 								std::string tempFilePath = loadMapNameBuffer;
-								char *tempFilePathWithExt = paths::ChangeFileExtension(loadMapNameBuffer, (u32)utils::ArrayCount(loadMapNameBuffer), tempFilePath.c_str(), ".map");
+								char *tempFilePathWithExt = paths::ChangeFileExtension(tempFilePath.c_str(), ".map", loadMapNameBuffer, (u32)utils::ArrayCount(loadMapNameBuffer));
 								if (LoadMap(tempFilePathWithExt)) {
 									activeEditorFilePath = tempFilePathWithExt;
 								}
