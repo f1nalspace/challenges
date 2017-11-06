@@ -161,6 +161,10 @@ int main(int argc, char **args) {
 	InitSettings platformSettings = InitSettings();
 	platformSettings.window.windowWidth = game->GetInitialWidth();
 	platformSettings.window.windowHeight = game->GetInitialHeight();
+	const char *title = game->GetTitle();
+	if (title != nullptr) {
+		strings::CopyAnsiString(title, strings::GetAnsiStringLength(title), platformSettings.window.windowTitle, (u32)utils::ArrayCount(platformSettings.window.windowTitle));
+	}
 	platformSettings.video.isVSync = false;
 	if (InitPlatform(InitFlags::VideoOpenGL, platformSettings)) {
 		Renderer *renderer = (Renderer *)new OpenGLRenderer();

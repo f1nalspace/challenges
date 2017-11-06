@@ -72,12 +72,14 @@ namespace fs {
 
 			glColor4fv(&color.elements[0]);
 
+			glLineWidth(2.0f);
 			glBegin(isFilled ? GL_QUADS : GL_LINE_LOOP);
 			glVertex2f(ext.w, ext.h);
 			glVertex2f(-ext.w, ext.h);
 			glVertex2f(-ext.w, -ext.h);
 			glVertex2f(ext.w, -ext.h);
 			glEnd();
+			glLineWidth(1.0f);
 		}
 
 		void OpenGLRenderer::DrawSprite(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const Texture &texture, const Vec2f &uvMin, const Vec2f &uvMax) {

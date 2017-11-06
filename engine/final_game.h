@@ -9,10 +9,10 @@ using namespace fs::inputs;
 namespace fs {
 	namespace games {
 		class BaseGame {
-		private:
+		protected:
 			u32 initialWidth;
 			u32 initialHeight;
-		protected:
+			char *title;
 			Renderer *renderer;
 			bool exitRequested;
 		public:
@@ -20,7 +20,8 @@ namespace fs {
 				renderer(nullptr),
 				exitRequested(false),
 				initialWidth(1280),
-				initialHeight(720) {
+				initialHeight(720),
+				title(nullptr) {
 			}
 			virtual void Init() = 0;
 			virtual void Release() = 0;
@@ -37,6 +38,9 @@ namespace fs {
 			}
 			inline u32 GetInitialHeight() const {
 				return initialHeight;
+			}
+			inline const char *GetTitle() const {
+				return title;
 			}
 			inline void SetRenderer(Renderer *renderer) {
 				this->renderer = renderer;
