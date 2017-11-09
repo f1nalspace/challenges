@@ -46,7 +46,6 @@ namespace fs {
 					}
 				}
 			}
-
 			return(result);
 		}
 

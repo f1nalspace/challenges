@@ -111,8 +111,9 @@ namespace fs {
 			virtual void Update(const f32 halfGameWidth, const f32 halfGameHeight, const f32 aspectRatio) = 0;
 			virtual Vec2f Unproject(const Vec2i &windowPos) = 0;
 			virtual void DrawSprite(const Vec2f &pos, const Vec2f &ext, const Vec4f &color, const Texture &texture, const Vec2f &uvMin = Vec2f(0.0f, 0.0f), const Vec2f &uvMax = Vec2f(1.0f, 1.0f)) = 0;
-			virtual void DrawRectangle(const Vec2f &pos, const Vec2f &ext, const Vec4f &color = Vec4f::White, const bool isFilled = true) = 0;
-			virtual void DrawLine(const Vec2f &a, const Vec2f &b, const Vec4f &color = Vec4f::White) = 0;
+			virtual void DrawRectangle(const Vec2f &pos, const Vec2f &ext, const Vec4f &color = Vec4f::White, const bool isFilled = true, const f32 lineWidth = 1.0f) = 0;
+			virtual void DrawLine(const Vec2f &a, const Vec2f &b, const Vec4f &color = Vec4f::White, const f32 lineWidth = 1.0f) = 0;
+			virtual void DrawCircle(const Vec2f &center, const f32 radius, const Vec4f &color = Vec4f::White, const bool isFilled = true, const u32 segmentCount = 16, const f32 lineWidth = 1.0f) = 0;
 			Renderer() {
 			}
 			virtual ~Renderer() {

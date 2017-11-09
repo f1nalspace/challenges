@@ -28,9 +28,6 @@ namespace fs {
 		void OpenGLRenderer::BeginFrame() {
 			glViewport(viewport.offset.x, viewport.offset.y, viewport.size.w, viewport.size.h);
 
-			glMatrixMode(GL_MODELVIEW);
-			glLoadMatrixf(&viewProjection.m[0]);
-
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
@@ -65,14 +62,14 @@ namespace fs {
 			}
 			return(result);
 		}
-		void OpenGLRenderer::DrawRectangle(const Vec2f & pos, const Vec2f & ext, const Vec4f &color, const bool isFilled) {
+		void OpenGLRenderer::DrawRectangle(const Vec2f & pos, const Vec2f & ext, const Vec4f &color, const bool isFilled, const f32 lineWidth) {
 			Mat4f translation = Mat4f::CreateTranslation(pos);
 			Mat4f mvp = viewProjection * translation;
 			glLoadMatrixf(&mvp.m[0]);
 
 			glColor4fv(&color.elements[0]);
 
-			glLineWidth(2.0f);
+			glLineWidth(lineWidth);
 			glBegin(isFilled ? GL_QUADS : GL_LINE_LOOP);
 			glVertex2f(ext.w, ext.h);
 			glVertex2f(-ext.w, ext.h);
@@ -102,15 +99,37 @@ namespace fs {
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
-		void OpenGLRenderer::DrawLine(const Vec2f &a, const Vec2f &b, const Vec4f &color) {
+		void OpenGLRenderer::DrawLine(const Vec2f &a, const Vec2f &b, const Vec4f &color, const f32 lineWidth) {
 			Mat4f mvp = viewProjection;
 			glLoadMatrixf(&mvp.m[0]);
 
 			glColor4fv(&color.elements[0]);
-			glLineWidth(1.0f);
+			glLineWidth(lineWidth);
 			glBegin(GL_LINES);
 			glVertex2f(a.x, a.y);
 			glVertex2f(b.x, b.y);
+			glEnd();
+			glLineWidth(1.0f);
+		}
+
+		void OpenGLRenderer::DrawCircle(const Vec2f &center, const f32 radius, const Vec4f &color, const bool isFilled, const u32 segmentCount, const f32 lineWidth) {
+			assert(segmentCount >= 3);
+
+			f32 radForSegment = TAU32 / (f32)segmentCount;
+
+			Mat4f translation = Mat4f::CreateTranslation(center);
+			Mat4f mvp = viewProjection * translation;
+			glLoadMatrixf(&mvp.m[0]);
+
+			glColor4fv(&color.elements[0]);
+			glLineWidth(lineWidth);
+			glBegin(isFilled ? GL_POLYGON : GL_LINE_LOOP);
+			for (u32 segmentIndex = 0; segmentIndex <= segmentCount; ++segmentIndex) {
+				f32 rad = (f32)segmentIndex * radForSegment;
+				f32 x = Cosine(rad) * radius;
+				f32 y = Sine(rad) * radius;
+				glVertex2f(x, y);
+			}
 			glEnd();
 			glLineWidth(1.0f);
 		}

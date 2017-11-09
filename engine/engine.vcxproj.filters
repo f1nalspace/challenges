@@ -11,10 +11,47 @@
     <ClInclude Include="final_randoms.h" />
     <ClInclude Include="final_collisions.h" />
     <ClInclude Include="final_mem.h" />
+    <ClInclude Include="final_concurrency.h" />
+    <ClInclude Include="..\dependencies\include\imgui\imconfig.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\imgui\imgui.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\imgui\imgui_internal.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\imgui\stb_rect_pack.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\imgui\stb_textedit.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\imgui\stb_truetype.h">
+      <Filter>dependencies\imgui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="final_maths.cpp" />
     <ClCompile Include="final_openglrenderer.cpp" />
     <ClCompile Include="final_collisions.cpp" />
+    <ClCompile Include="final_game.cpp" />
+    <ClCompile Include="..\dependencies\include\imgui\imgui.cpp">
+      <Filter>dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\include\imgui\imgui_demo.cpp">
+      <Filter>dependencies\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\include\imgui\imgui_draw.cpp">
+      <Filter>dependencies\imgui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="dependencies">
+      <UniqueIdentifier>{c2fb55da-9ce6-4d32-b73d-7212bf51683c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dependencies\imgui">
+      <UniqueIdentifier>{d2c63b17-8a05-47d1-926d-e5d51ffd65c0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

@@ -1,5 +1,11 @@
 #pragma once
 
+#if FS_ENABLE_IMGUI
+#	define IMGUI_DISABLE_OBSOLETE_FUNCTIONS 1
+#	include <imgui/imgui.h>
+#	include <imgui/imgui_internal.h>
+#endif
+
 #include "final_renderer.h"
 #include "final_input.h"
 
@@ -27,7 +33,7 @@ namespace fs {
 			virtual void Release() = 0;
 			virtual void HandleInput(const Input &input) = 0;
 			virtual void Update(const Input &input) = 0;
-			virtual void Render() = 0;
+			virtual void Render(const Input &input) = 0;
 			virtual ~BaseGame() {
 			}
 			inline bool IsExitRequested() const {
@@ -46,5 +52,7 @@ namespace fs {
 				this->renderer = renderer;
 			}
 		};
+
+		extern void RunGame(BaseGame *game);
 	};
 };

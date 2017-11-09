@@ -5,10 +5,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS 1
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-
 #include "final_utils.h"
 #include "final_mem.h"
 
@@ -605,7 +601,7 @@ namespace fs {
 						static char mapNameBuffer[1024] = {};
 						static bool autoOk = false;
 						if (firstTimeSaveDialog) {
-							memory::ClearMemory(mapNameBuffer, sizeof(mapNameBuffer));
+							memory::MemoryClear(mapNameBuffer, sizeof(mapNameBuffer));
 							strings::CopyAnsiString(activeEditorFilePath.c_str(), (u32)activeEditorFilePath.size(), mapNameBuffer, (u32)utils::ArrayCount(mapNameBuffer));
 							firstTimeSaveDialog = false;
 							autoOk = false;
@@ -640,7 +636,7 @@ namespace fs {
 						static char loadMapNameBuffer[1024] = {};
 						static bool loadMapAuto = false;
 						if (firstTimeOpenDialog) {
-							memory::ClearMemory(loadMapNameBuffer, sizeof(loadMapNameBuffer));
+							memory::MemoryClear(loadMapNameBuffer, sizeof(loadMapNameBuffer));
 							strings::CopyAnsiString(activeEditorFilePath.c_str(), (u32)activeEditorFilePath.size(), loadMapNameBuffer, (u32)utils::ArrayCount(loadMapNameBuffer));
 							firstTimeOpenDialog = false;
 							loadMapAuto = false;
@@ -909,7 +905,7 @@ namespace fs {
 				return(result);
 			}
 
-			void Game::Render() {
+			void Game::Render(const Input &input) {
 				renderer->BeginFrame();
 
 			#if !TEST_ACTIVE

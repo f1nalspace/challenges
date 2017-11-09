@@ -1,10 +1,11 @@
 #pragma once
 
+#define FS_ENABLE_IMGUI 1
+
 #include <vector>
 #include <memory>
 #include <string>
 
-// @TODO: Remove this!
 #include <final_platform_layer.hpp>
 
 #include "final_types.h"
@@ -301,7 +302,7 @@ namespace fs {
 				void Release() override;
 				void HandleInput(const Input &input) override;
 				void Update(const Input &input) override;
-				void Render() override;
+				void Render(const Input &input) override;
 
 			};
 

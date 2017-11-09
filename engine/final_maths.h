@@ -5,9 +5,9 @@
 #include <assert.h>
 #include <math.h>
 
-#define MATH_ENABLE_SIMD 0
+#define MATH_ENABLE_SSE2 1
 
-#if MATH_ENABLE_SIMD
+#if MATH_ENABLE_SSE2
 #	include <xmmintrin.h>
 #	include <intrin.h>
 #endif
@@ -16,8 +16,17 @@
 #define RGBAToPixel(rgba) {((rgba) >> 0) & 0xFF, ((rgba) >> 8) & 0xFF, ((rgba) >> 16) & 0xFF, ((rgba) >> 24) & 0xFF}
 #define PixelToRGBA(pixel) RGBAToPixel((pixel).r, (pixel).g, (pixel).b, (pixel).a)
 
+// http://fastcpp.blogspot.de/2011/03/changing-sign-of-float-values-using-sse.html
+// http://fastcpp.blogspot.de/2011/03/loading-3d-vector-into-sse-register.html
+// http://fastcpp.blogspot.de/2011/03/loading-two-consecutive-3d-vectors-into.html
+// http://fastcpp.blogspot.de/2012/02/calculating-length-of-3d-vector-using.html
+// http://fastcpp.blogspot.de/2011/03/matrix-vector-multiplication-using-sse3.html
+
 namespace fs {
 	namespace maths {
+		constexpr f32 PI32 = 3.14159265358979323846f;
+		constexpr f32 TAU32 = PI32 * 2.0f;
+
 		//
 		// Forward declarations
 		//
@@ -380,7 +389,7 @@ namespace fs {
 		//
 		// Mat4f (4 x 4 float matrix)
 		//
-		union Mat4f {
+		__declspec(align(16)) union Mat4f {
 			struct {
 				Vec4f col1;
 				Vec4f col2;
@@ -660,6 +669,18 @@ namespace fs {
 			return(result);
 		}
 
+		template <typename T>
+		inline T Cosine(const T value) {
+			T result = (T)cos(value);
+			return(result);
+		}
+
+		template <typename T>
+		inline T Sine(const T value) {
+			T result = (T)sin(value);
+			return(result);
+		}
+
 		//
 		// Vec2i functions (Do not depend on the operators)
 		//
@@ -713,29 +734,35 @@ namespace fs {
 		}
 
 		inline f32 Dot(const Vec2f &a, const Vec2f &b) {
+			// @SPEED: SSE2!
 			f32 result = a.x * b.x + a.y * b.y;
 			return(result);
 		}
 
 		inline f32 LengthSquared(const Vec2f &vec) {
+			// @SPEED: SSE2!
 			f32 result = vec.x * vec.x + vec.y * vec.y;
 			return(result);
 		}
 		inline f32 Length(const Vec2f &vec) {
+			// @SPEED: SSE2!
 			f32 result = SquareRoot(vec.x * vec.x + vec.y * vec.y);
 			return(result);
 		}
 
 		inline f32 DistanceSquared(const Vec2f &a, const Vec2f &b) {
+			// @SPEED: SSE2!
 			f32 result = (a.x - b.x) * (a.y - b.y);
 			return(result);
 		}
 		inline f32 Distance(const Vec2f &a, const Vec2f &b) {
+			// @SPEED: SSE2!
 			f32 result = SquareRoot((a.x - b.x) * (a.y - b.y));
 			return(result);
 		}
 
 		inline Vec2f Normalize(const Vec2f &vec) {
+			// @SPEED: SSE2!
 			f32 len = Length(vec);
 			f32 invLen = len != 0.0f ? 1.0f / len : 1.0f;
 			Vec2f result = Vec2f(vec.x * invLen, vec.y * invLen);
@@ -743,6 +770,7 @@ namespace fs {
 		}
 
 		inline Vec2f Minimum(const Vec2f &a, const Vec2f &b) {
+			// @SPEED: SSE2!
 			Vec2f result;
 			result.x = Minimum(a.x, b.x);
 			result.y = Minimum(a.y, b.y);
@@ -750,6 +778,7 @@ namespace fs {
 		}
 
 		inline Vec2f Maximum(const Vec2f &a, const Vec2f &b) {
+			// @SPEED: SSE2!
 			Vec2f result;
 			result.x = Maximum(a.x, b.x);
 			result.y = Maximum(a.y, b.y);
@@ -757,6 +786,7 @@ namespace fs {
 		}
 
 		inline Vec2f Lerp(const Vec2f &a, const f32 t, const Vec2f &b) {
+			// @SPEED: SSE2!
 			Vec2f result;
 			result.x = Lerp(a.x, t, b.x);
 			result.y = Lerp(a.y, t, b.y);
@@ -764,6 +794,7 @@ namespace fs {
 		}
 
 		inline Vec2f Clamp(const Vec2f &value, const Vec2f &min, const Vec2f &max) {
+			// @SPEED: SSE2!
 			Vec2f result;
 			result.x = Clamp(value.x, min.x, max.x);
 			result.y = Clamp(value.y, min.y, max.y);
@@ -771,6 +802,7 @@ namespace fs {
 		}
 
 		inline Vec2f Hadamard(const Vec2f &a, const Vec2f &b) {
+			// @SPEED: SSE2!
 			Vec2f result = Vec2f(a.x * b.x, a.y * b.y);
 			return(result);
 		}
@@ -836,6 +868,7 @@ namespace fs {
 		}
 
 		inline Vec2f operator * (const Vec2f &a, const Mat2f &mat) {
+			// @SPEED: SSE2!
 			Vec2f result;
 			result.x = mat.col1.x * a.x + mat.col2.x * a.y;
 			result.y = mat.col1.y * a.x + mat.col2.y * a.y;
@@ -854,29 +887,35 @@ namespace fs {
 		}
 
 		inline f32 Dot(const Vec3f &a, const Vec3f &b) {
+			// @SPEED: SSE2!
 			f32 result = a.x * b.x + a.y * b.y + a.z * b.z;
 			return(result);
 		}
 
 		inline f32 LengthSquared(const Vec3f &vec) {
+			// @SPEED: SSE2!
 			f32 result = vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
 			return(result);
 		}
 		inline f32 Length(const Vec3f &vec) {
+			// @SPEED: SSE2!
 			f32 result = SquareRoot(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 			return(result);
 		}
 
 		inline f32 DistanceSquared(const Vec3f &a, const Vec3f &b) {
+			// @SPEED: SSE2!
 			f32 result = (a.x - b.x) * (a.y - b.y) * (a.z - b.z);
 			return(result);
 		}
 		inline f32 Distance(const Vec3f &a, const Vec3f &b) {
+			// @SPEED: SSE2!
 			f32 result = SquareRoot((a.x - b.x) * (a.y - b.y) * (a.z - b.z));
 			return(result);
 		}
 
 		inline Vec3f Normalize(const Vec3f &vec) {
+			// @SPEED: SSE2!
 			f32 len = Length(vec);
 			f32 invLen = len != 0.0f ? 1.0f / len : 1.0f;
 			Vec3f result = Vec3f(vec.x * invLen, vec.y * invLen, vec.z * invLen);
@@ -884,6 +923,7 @@ namespace fs {
 		}
 
 		inline Vec3f Minimum(const Vec3f &a, const Vec3f &b) {
+			// @SPEED: SSE2!
 			Vec3f result;
 			result.x = Minimum(a.x, b.x);
 			result.y = Minimum(a.y, b.y);
@@ -892,6 +932,7 @@ namespace fs {
 		}
 
 		inline Vec3f Maximum(const Vec3f &a, const Vec3f &b) {
+			// @SPEED: SSE2!
 			Vec3f result;
 			result.x = Maximum(a.x, b.x);
 			result.y = Maximum(a.y, b.y);
@@ -900,6 +941,7 @@ namespace fs {
 		}
 
 		inline Vec3f Lerp(const Vec3f &a, const f32 t, const Vec3f &b) {
+			// @SPEED: SSE2!
 			Vec3f result;
 			result.x = Lerp(a.x, t, b.x);
 			result.y = Lerp(a.y, t, b.y);
@@ -908,6 +950,7 @@ namespace fs {
 		}
 
 		inline Vec3f Clamp(const Vec3f &value, const Vec3f &min, const Vec3f &max) {
+			// @SPEED: SSE2!
 			Vec3f result;
 			result.x = Clamp(value.x, min.x, max.x);
 			result.y = Clamp(value.y, min.y, max.y);
@@ -916,6 +959,7 @@ namespace fs {
 		}
 
 		inline Vec3f Hadamard(const Vec3f &a, const Vec3f &b) {
+			// @SPEED: SSE2!
 			Vec3f result = Vec3f(a.x * b.x, a.y * b.y, a.z * b.z);
 			return(result);
 		}
@@ -975,6 +1019,7 @@ namespace fs {
 		// Mat2f operators
 		//
 		inline Mat2f operator *(const Mat2f &a, const Mat2f &b) {
+			// @SPEED: SSE2!
 			Mat2f result;
 			result.col1 = b.col1 * a;
 			result.col2 = b.col2 * a;
@@ -1000,7 +1045,7 @@ namespace fs {
 		// @NOTE: Fastest SIMD mat4 mult: http://stackoverflow.com/questions/18499971/efficient-4x4-matrix-multiplication-c-vs-assembly
 		inline Mat4f operator *(const Mat4f &a, const Mat4f &b) {
 			Mat4f result = Mat4f(1.0f);
-#if MATH_ENABLE_SIMD
+#if MATH_ENABLE_SSE2
 			__m128 simd128x4[4];
 			simd128x4[0] = _mm_load_ps(&a.m[0]);
 			simd128x4[1] = _mm_load_ps(&a.m[4]);
@@ -1038,6 +1083,8 @@ namespace fs {
 		// Mat4f operations (Depends on operators)
 		//
 		inline Mat4f Transpose(const Mat4f &mat) {
+			// @SPEED: SSE2!
+
 			Mat4f result;
 
 			result.m[0] = mat.col1.x;
@@ -1076,12 +1123,14 @@ namespace fs {
 		}
 
 		inline Vec4f RGBAToLinear(u32 rgba) {
+			// @SPEED: SSE2!
 			Pixel pixel = RGBAToPixel(rgba);
 			Vec4f result = Vec4f(pixel.r * INV255, pixel.g * INV255, pixel.b * INV255, pixel.a * INV255);
 			return(result);
 		}
 
 		inline u32 LinearToRGBA(const Vec4f &linear) {
+			// @SPEED: SSE2!
 			u8 r = (u8)((linear.x * 255.0f) + 0.5f);
 			u8 g = (u8)((linear.y * 255.0f) + 0.5f);
 			u8 b = (u8)((linear.z * 255.0f) + 0.5f);

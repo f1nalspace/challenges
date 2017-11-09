@@ -1,53 +1,56 @@
 #pragma once
 
-#include <allocators>
-#include <new>
+#include <final_platform_layer.hpp>
 
 namespace fs {
 	namespace mem {
-		template<typename T>
-		class StackAllocator {
-		public:
-			typedef T value_type;
-			typedef value_type* pointer;
-			typedef const value_type* const_pointer;
-			typedef value_type& reference;
-			typedef const value_type& const_reference;
-			typedef std::size_t size_type;
-			typedef std::ptrdiff_t difference_type;
-		public:
-			template<typename U>
-			struct rebind {
-				typedef StackAllocator<U> other;
-			};
-
-		public:
-			inline explicit StackAllocator() {}
-			inline ~StackAllocator() {}
-			inline explicit StackAllocator(StackAllocator const&) {}
-			template<typename U>
-			inline explicit StackAllocator(StackAllocator<U> const&) {}
-
-			inline pointer address(reference r) { return &r; }
-			inline const_pointer address(const_reference r) { return &r; }
-
-			inline pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0) {
-				void *mem = alloca(cnt * sizeof(T));
-				return new (mem)T;
-			}
-			inline void deallocate(pointer p, size_type) {
-				// @NOTE: Stack allocated memory does not to be deallocated.
-			}
-
-			inline size_type max_size() const {
-				return std::numeric_limits<size_type>::max() / sizeof(T);
-			}
-
-			inline void construct(pointer p, const T& t) { new(p) T(t); }
-			inline void destroy(pointer p) { p->~T(); }
-
-			inline bool operator==(StackAllocator const&) { return true; }
-			inline bool operator!=(StackAllocator const& a) { return !operator==(a); }
+		struct MemoryBlock {
+			size_t size;
+			size_t offset;
+			void *base;
 		};
+
+		inline MemoryBlock AllocateMemoryBlock(const size_t size, const size_t alignment = 16) {
+			MemoryBlock result = {};
+			result.size = size;
+			result.base = fpl::memory::MemoryAlignedAllocate(size, alignment);
+			return(result);
+		}
+
+		inline void ReleaseMemoryBlock(MemoryBlock *block) {
+			if (block->base != nullptr) {
+				fpl::memory::MemoryAlignedFree(block->base);
+			}
+			*block = {};
+		}
+
+		template <typename T>
+		inline T *PushSize(MemoryBlock *block, const size_t size, const bool clear = true) {
+			assert((block->offset + size) <= block->size);
+			void *ptr = (void *)((uint8_t *)block->base + block->offset);
+			block->offset += size;
+			if (clear) {
+				fpl::memory::ClearMemory(ptr, size);
+			}
+			T *result = (T*)ptr;
+			return(result);
+		}
+
+		template <typename T>
+		inline T *PushStruct(MemoryBlock *block, const bool clear = true) {
+			T *result = PushSize<T>(block, sizeof(T), clear);
+			return(result);
+		}
+
+		template <typename T>
+		inline T *PushArray(MemoryBlock *block, const size_t count, const bool clear = true) {
+			T *result = PushSize<T>(block, count * sizeof(T), clear);
+			return(result);
+		}
+
+		inline void PopSize(MemoryBlock *block, const size_t size) {
+			assert((block->offset - size) >= 0);
+			block->offset -= size;
+		}
 	};
 };

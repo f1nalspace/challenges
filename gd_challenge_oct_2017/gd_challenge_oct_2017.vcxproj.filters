@@ -3,28 +3,10 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="game.cpp" />
-    <ClCompile Include="..\dependencies\include\imgui\imgui.cpp">
-      <Filter>dependencies\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dependencies\include\imgui\imgui_draw.cpp">
-      <Filter>dependencies\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dependencies\include\imgui\imgui_demo.cpp">
-      <Filter>dependencies\imgui</Filter>
-    </ClCompile>
     <ClCompile Include="editor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h" />
-    <ClInclude Include="..\dependencies\include\imgui\imconfig.h">
-      <Filter>dependencies\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dependencies\include\imgui\imgui.h">
-      <Filter>dependencies\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dependencies\include\imgui\imgui_internal.h">
-      <Filter>dependencies\imgui</Filter>
-    </ClInclude>
     <ClInclude Include="..\dependencies\include\final_platform_layer.hpp">
       <Filter>dependencies</Filter>
     </ClInclude>
@@ -42,9 +24,6 @@
   <ItemGroup>
     <Filter Include="dependencies">
       <UniqueIdentifier>{3480bc80-2f9d-4b3f-ace9-5ec805a73f9f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="dependencies\imgui">
-      <UniqueIdentifier>{8a23de96-c810-41fb-bb33-fc13df24dde5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

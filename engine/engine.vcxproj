@@ -70,20 +70,20 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)bin\$(Platform)-$(Configuration)\</OutDir>
-    <IntDir>$(ProjectDir)immediates\$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)immediates\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)bin\$(Platform)-$(Configuration)\</OutDir>
-    <IntDir>$(ProjectDir)immediates\$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)immediates\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)bin\$(Platform)-$(Configuration)\</OutDir>
-    <IntDir>$(ProjectDir)immediates\$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)immediates\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)bin\$(Platform)-$(Configuration)\</OutDir>
-    <IntDir>$(ProjectDir)immediates\$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)immediates\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -136,7 +136,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\dependencies\include\imgui\imconfig.h" />
+    <ClInclude Include="..\dependencies\include\imgui\imgui.h" />
+    <ClInclude Include="..\dependencies\include\imgui\imgui_internal.h" />
+    <ClInclude Include="..\dependencies\include\imgui\stb_rect_pack.h" />
+    <ClInclude Include="..\dependencies\include\imgui\stb_textedit.h" />
+    <ClInclude Include="..\dependencies\include\imgui\stb_truetype.h" />
     <ClInclude Include="final_collisions.h" />
+    <ClInclude Include="final_concurrency.h" />
     <ClInclude Include="final_game.h" />
     <ClInclude Include="final_input.h" />
     <ClInclude Include="final_maths.h" />
@@ -148,7 +155,11 @@
     <ClInclude Include="final_utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\dependencies\include\imgui\imgui.cpp" />
+    <ClCompile Include="..\dependencies\include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\dependencies\include\imgui\imgui_draw.cpp" />
     <ClCompile Include="final_collisions.cpp" />
+    <ClCompile Include="final_game.cpp" />
     <ClCompile Include="final_maths.cpp" />
     <ClCompile Include="final_openglrenderer.cpp" />
   </ItemGroup>
