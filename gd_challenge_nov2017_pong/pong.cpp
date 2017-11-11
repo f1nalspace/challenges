@@ -17,6 +17,16 @@ namespace fs {
 		Pong::~Pong() {
 
 		}
+
+		void Pong::ResetBall() {
+			f32 angle = RandomUnilateral(entropy) * TAU32;
+			Vec2f direction = Vec2f(Cosine(angle), Sine(angle));
+			ball.moveable.speed = ball.moveable.initialSpeed;
+			ball.moveable.velocity = direction * ball.moveable.speed;
+			ball.moveable.position = ball.moveable.initialPosition;
+			ball.moveable.acceleration = Vec2f();
+		}
+
 		void Pong::Init() {
 			glClearColor(0.3f, 0.5f, 0.8f, 1.0f);
 			glEnable(GL_BLEND);
@@ -27,38 +37,32 @@ namespace fs {
 			planes.emplace_back(Plane(PlaneType::None, Vec2f(0, 1), -GAME_HALF_HEIGHT * PlaneAreaScale, GAME_WIDTH * PlaneAreaScale));
 			planes.emplace_back(Plane(PlaneType::None, Vec2f(0, -1), -GAME_HALF_HEIGHT * PlaneAreaScale, GAME_WIDTH * PlaneAreaScale));
 
+			entropy = RandomSeed(1337);
+
 			f32 dt = 1.0f / 60.0f;
 			ball = Ball();
-			ball.moveable.speed = ball.moveable.defaultSpeed = 2.0f;
-			ball.moveable.velocity = Normalize(Vec2f(-1, 0.25f)) * ball.moveable.speed;
-			ball.moveable.position = Vec2f(0, 0);
+			ball.moveable.initialPosition = Vec2f(0, 0);
+			ball.moveable.initialSpeed = 2.0f;
+			ResetBall();
 		}
+
 		void Pong::Release() {
 			controlledPlayers.clear();
 			paddles.clear();
 			planes.clear();
 		}
+
 		void Pong::HandleInput(const Input &input) {
 			HandleControllerConnections(input);
 		}
 
 		void Pong::SetExternalForces(const f32 dt) {
 			ball.moveable.acceleration = Vec2f();
+			u32 paddleIndex = 0;
 			for (Paddle &paddle : paddles) {
 				paddle.moveable.acceleration = Vec2f();
 				paddle.moveable.acceleration += -Dot(Vec2f::Up, paddle.moveable.velocity) * Vec2f::Up * paddle.verticalDrag;
-	}
-}
-
-		static void HandleBallCollisions(Ball &ball, Entity *enemy) {
-			if (enemy->entityType == EntityType::Plane) {
-				Plane *plane = (Plane *)enemy;
-				if ((plane->planeType == PlaneType::LeftSide) ||
-					(plane->planeType == PlaneType::RightSide)) {
-					ball.moveable.speed = ball.moveable.defaultSpeed;
-					ball.moveable.velocity = Normalize(Vec2f(-1, 0.25f)) * ball.moveable.speed;
-					ball.moveable.position = Vec2f(0, 0);
-				}
+				++paddleIndex;
 			}
 		}
 
@@ -66,10 +70,11 @@ namespace fs {
 			Vec2f n = planes[planeIndex].normal;
 			Paddle paddle;
 			paddle = Paddle();
-			paddle.moveable.speed = 10.0f;
-			paddle.verticalDrag = 25.0;
+			paddle.verticalDrag = 40.0;
 			paddle.color = color;
-			paddle.moveable.position = (n * planes[planeIndex].distance) + Hadamard(n, paddle.ext) * 2.0f;
+			paddle.moveable.speed = 20.0f;
+			paddle.moveable.initialPosition = (n * planes[planeIndex].distance) + Hadamard(n, paddle.ext) * 2.0f;
+			paddle.moveable.position = paddle.moveable.initialPosition;
 			paddles.emplace_back(paddle);
 			u32 result = (u32)(paddles.size() - 1);
 			return(result);
@@ -147,6 +152,16 @@ namespace fs {
 					paddles[0].moveable.acceleration.y = -1.0f * paddles[0].moveable.speed;
 				} else if (playerController.moveUp.isDown) {
 					paddles[0].moveable.acceleration.y = 1.0f * paddles[0].moveable.speed;
+				}
+			}
+		}
+
+		void Pong::HandleBallCollisions(Ball &ball, Entity *enemy) {
+			if (enemy->entityType == EntityType::Plane) {
+				Plane *plane = (Plane *)enemy;
+				if ((plane->planeType == PlaneType::LeftSide) ||
+					(plane->planeType == PlaneType::RightSide)) {
+					ResetBall();
 				}
 			}
 		}
@@ -277,15 +292,18 @@ namespace fs {
 		void Pong::UpdateAI(const f32 dt) {
 			if (paddles.size() == 2) {
 				Paddle &paddle = paddles[1];
-				Vec2f relPos = paddle.moveable.position - ball.moveable.position;
-				f32 projPos = Dot(Vec2f::Up, relPos);
-				Vec2f direction = Vec2f();
-				if (projPos != 0) {
-					if (Absolute(projPos) > ball.radius) {
-						f32 n = projPos < 0 ? 1.0f : -1.0f;
-						paddle.moveable.acceleration.y = n * paddle.moveable.speed;
-					}
+				Vec2f target;
+				f32 ballHorizontalMovement = Dot(Vec2f::Right, ball.moveable.position);
+				if (ballHorizontalMovement > 0) {
+					target = ball.moveable.position;
+				} else {
+					target = paddle.moveable.initialPosition;
 				}
+				Vec2f relPos = paddle.moveable.position - target;
+				f32 projPos = Dot(Vec2f::Up, relPos);
+				f32 a = 2.0f * projPos * (1.0f / dt);
+				Vec2f accel = Vec2f(Vec2f::Up) * -a;
+				paddle.moveable.acceleration += accel;
 			}
 		}
 

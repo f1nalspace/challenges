@@ -4,8 +4,10 @@
 
 #include "final_game.h"
 #include "final_maths.h"
+#include "final_randoms.h"
 
 using namespace fs::maths;
+using namespace fs::randoms;
 
 namespace fs {
 	namespace games {
@@ -27,12 +29,13 @@ namespace fs {
 		};
 
 		struct Moveable {
+			Vec2f initialPosition = Vec2f();
 			Vec2f position = Vec2f();
 			Vec2f velocity = Vec2f();
 			Vec2f acceleration = Vec2f();
 			Vec2f delta = Vec2f();
 			f32 speed = 0.0f;
-			f32 defaultSpeed = 0.0f;
+			f32 initialSpeed = 0.0f;
 		};
 
 		struct Ball {
@@ -93,6 +96,8 @@ namespace fs {
 			void UpdateAI(const f32 dt);
 			s32 FindControlledPlayerIndex(const u32 controllerIndex);
 			void HandleControllerConnections(const Input &input);
+			void ResetBall();
+			void HandleBallCollisions(Ball &ball, Entity *enemy);
 		public:
 			static constexpr f32 GAME_ASPECT = 16.0f / 9.0f;
 			static constexpr f32 GAME_WIDTH = 20.0f;
@@ -105,6 +110,7 @@ namespace fs {
 			std::vector<Plane> planes;
 			std::vector<ControlledPlayer> controlledPlayers = std::vector<ControlledPlayer>();
 			bool isStarted = false;
+			RandomSeries entropy;
 
 			Pong();
 			~Pong() override;
