@@ -22,68 +22,280 @@ namespace fs {
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-			planes.emplace_back(Plane(Vec2f(1, 0), -GAME_HALF_HEIGHT * PlaneAreaScale, GAME_HEIGHT * PlaneAreaScale));
-			planes.emplace_back(Plane(Vec2f(0, 1), -GAME_HALF_HEIGHT * PlaneAreaScale, GAME_HEIGHT * PlaneAreaScale));
-			planes.emplace_back(Plane(Vec2f(-1, 0), -GAME_HALF_HEIGHT * PlaneAreaScale, GAME_HEIGHT * PlaneAreaScale));
-			planes.emplace_back(Plane(Vec2f(0, -1), -GAME_HALF_HEIGHT * PlaneAreaScale, GAME_HEIGHT * PlaneAreaScale));
+			planes.emplace_back(Plane(PlaneType::LeftSide, Vec2f(1, 0), -GAME_HALF_WIDTH * PlaneAreaScale, GAME_HEIGHT * PlaneAreaScale));
+			planes.emplace_back(Plane(PlaneType::RightSide, Vec2f(-1, 0), -GAME_HALF_WIDTH * PlaneAreaScale, GAME_HEIGHT * PlaneAreaScale));
+			planes.emplace_back(Plane(PlaneType::None, Vec2f(0, 1), -GAME_HALF_HEIGHT * PlaneAreaScale, GAME_WIDTH * PlaneAreaScale));
+			planes.emplace_back(Plane(PlaneType::None, Vec2f(0, -1), -GAME_HALF_HEIGHT * PlaneAreaScale, GAME_WIDTH * PlaneAreaScale));
 
 			f32 dt = 1.0f / 60.0f;
 			ball = Ball();
-			ball.acceleration = Normalize(Vec2f(1, 1)) * 500.0f;
-			ball.position = Vec2f(0, 0);
-
-			paddle = Paddle();
-			paddle.position = (planes[0].normal * planes[0].distance) + Hadamard(Vec2f(1, 0), paddle.ext) * 2.0f;
+			ball.moveable.speed = ball.moveable.defaultSpeed = 2.0f;
+			ball.moveable.velocity = Normalize(Vec2f(-1, 0.25f)) * ball.moveable.speed;
+			ball.moveable.position = Vec2f(0, 0);
 		}
 		void Pong::Release() {
-
+			controlledPlayers.clear();
+			paddles.clear();
+			planes.clear();
 		}
 		void Pong::HandleInput(const Input &input) {
-
+			HandleControllerConnections(input);
 		}
-		void Pong::Update(const Input &input) {
-		#if 0
-			const f32 dt = input.deltaTime;
 
-			ball.delta = 0.5f * ball.acceleration * (dt * dt) + ball.velocity * dt;
-			ball.velocity = ball.acceleration * dt + ball.velocity;
-			ball.acceleration = Vec2f();
+		void Pong::SetExternalForces(const f32 dt) {
+			ball.moveable.acceleration = Vec2f();
+			for (Paddle &paddle : paddles) {
+				paddle.moveable.acceleration = Vec2f();
+				paddle.moveable.acceleration += -Dot(Vec2f::Up, paddle.moveable.velocity) * Vec2f::Up * paddle.verticalDrag;
+	}
+}
 
-			f32 tMax = 1.0f;
-			for (u32 iteration = 0; iteration < 4; ++iteration) {
-				f32 tMin = tMax;
-				Vec2f hitNormal = Vec2f();
-				bool wasHit = false;
+		static void HandleBallCollisions(Ball &ball, Entity *enemy) {
+			if (enemy->entityType == EntityType::Plane) {
+				Plane *plane = (Plane *)enemy;
+				if ((plane->planeType == PlaneType::LeftSide) ||
+					(plane->planeType == PlaneType::RightSide)) {
+					ball.moveable.speed = ball.moveable.defaultSpeed;
+					ball.moveable.velocity = Normalize(Vec2f(-1, 0.25f)) * ball.moveable.speed;
+					ball.moveable.position = Vec2f(0, 0);
+				}
+			}
+		}
 
-				Vec2f targetPosition = ball.position + ball.delta;
+		u32 Pong::CreatePaddle(const u32 planeIndex, const Vec4f &color) {
+			Vec2f n = planes[planeIndex].normal;
+			Paddle paddle;
+			paddle = Paddle();
+			paddle.moveable.speed = 10.0f;
+			paddle.verticalDrag = 25.0;
+			paddle.color = color;
+			paddle.moveable.position = (n * planes[planeIndex].distance) + Hadamard(n, paddle.ext) * 2.0f;
+			paddles.emplace_back(paddle);
+			u32 result = (u32)(paddles.size() - 1);
+			return(result);
+		}
 
-				for (const Plane &plane : planes) {
-					Vec2f planeCenter = plane.normal * plane.distance;
-					Vec2f relativePosition = ball.position - planeCenter;
-					f32 distanceToPlane = Dot(plane.normal, relativePosition) - ball.radius;
-					f32 projMovement = -Dot(plane.normal, ball.delta);
-					if (Absolute(projMovement) > 0) {
-						f32 f = distanceToPlane / projMovement;
-						if ((f >= 0.0f) && (tMin > f)) {
-							tMin = Maximum(0.0f, f - EpsilonTime);
-							hitNormal = plane.normal;
-							wasHit = true;
+		s32 Pong::FindControlledPlayerIndex(const u32 controllerIndex) {
+			s32 result = -1;
+			for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
+				if (controlledPlayers[controlledPlayerIndex].controllerIndex == controllerIndex) {
+					result = controlledPlayerIndex;
+					break;
+				}
+			}
+			return(result);
+		}
+
+		void Pong::HandleControllerConnections(const Input &input) {
+			for (u32 controllerIndex = 0; controllerIndex < utils::ArrayCount(input.controllers); ++controllerIndex) {
+				const Controller &testController = input.controllers[controllerIndex];
+				if (testController.isConnected) {
+
+					// @NOTE: Connected controller
+					s32 foundControlledPlayerIndex = FindControlledPlayerIndex(controllerIndex);
+					if (foundControlledPlayerIndex == -1) {
+						u32 playerIndex;
+						if (!isStarted) {
+							assert(paddles.size() == 0);
+							playerIndex = CreatePaddle(0, Vec4f::Blue); // Player
+							CreatePaddle(1, Vec4f::Red); // AI
+							isStarted = true;
+						} else {
+							playerIndex = 0;
 						}
+						ControlledPlayer controlledPlayer = {};
+						controlledPlayer.controllerIndex = controllerIndex;
+						controlledPlayer.playerIndex = playerIndex;
+						controlledPlayers.emplace_back(controlledPlayer);
+					}
+				} else {
+					// @NOTE: Disconnected controller
+					s32 foundControlledPlayerIndex = FindControlledPlayerIndex(controllerIndex);
+					if (foundControlledPlayerIndex != -1) {
+						const ControlledPlayer &controlledPlayer = controlledPlayers[foundControlledPlayerIndex];
+						u32 playerIndex = controlledPlayer.playerIndex;
+						u32 controllerIndex = controlledPlayer.controllerIndex;
+
+						// @TODO: Give the player a bit time to reconnect - let it blink or something
+
+						// Remove player and controlled player
+						paddles.erase(paddles.begin() + playerIndex);
+						controlledPlayers.erase(controlledPlayers.begin() + foundControlledPlayerIndex);
+					}
+				}
+			}
+		}
+
+		void Pong::HandlePlayerInput(const Input &input) {
+			for (u32 controlledPlayerIndex = 0; controlledPlayerIndex < controlledPlayers.size(); ++controlledPlayerIndex) {
+				u32 playerIndex = controlledPlayers[controlledPlayerIndex].playerIndex;
+				u32 controllerIndex = controlledPlayers[controlledPlayerIndex].controllerIndex;
+
+				// @BUG: On app shutdown this crashes due to the assert below.
+				// Players got cleared but connected controllers arent,
+				// because the controller is not disconnected when shutting down.
+				// This condition ensures that it wont crash, but its not correct!
+				if (playerIndex >= (paddles.size())) continue;
+
+				assert(playerIndex < paddles.size());
+				assert(controllerIndex < utils::ArrayCount(input.controllers));
+
+				Paddle &paddle = paddles[playerIndex];
+				const Controller &playerController = input.controllers[controllerIndex];
+
+				if (playerController.moveDown.isDown) {
+					paddles[0].moveable.acceleration.y = -1.0f * paddles[0].moveable.speed;
+				} else if (playerController.moveUp.isDown) {
+					paddles[0].moveable.acceleration.y = 1.0f * paddles[0].moveable.speed;
+				}
+			}
+		}
+
+		void Pong::MoveEntities(const f32 dt) {
+			// Integrate ball
+			ball.moveable.delta = 0.5f * ball.moveable.acceleration * (dt * dt) + ball.moveable.velocity * dt;
+			ball.moveable.velocity = ball.moveable.acceleration * dt + ball.moveable.velocity;
+
+			// Integrate paddles
+			for (Paddle &paddle : paddles) {
+				paddle.moveable.delta = 0.5f * paddle.moveable.acceleration * (dt * dt) + paddle.moveable.velocity * dt;
+				paddle.moveable.velocity = paddle.moveable.acceleration * dt + paddle.moveable.velocity;
+			}
+
+			// Ball collision
+			{
+				f32 tMax = 1.0f;
+				for (u32 iteration = 0; iteration < 4; ++iteration) {
+					f32 tMin = tMax;
+					Vec2f hitNormal = Vec2f();
+					bool wasHit = false;
+					Entity *hitEntity = nullptr;
+
+					Vec2f targetPosition = ball.moveable.position + ball.moveable.delta;
+
+					// Planes
+					for (Plane &plane : planes) {
+						Vec2f planeCenter = plane.normal * plane.distance;
+						Vec2f relativePosition = ball.moveable.position - planeCenter;
+						f32 distanceToPlane = Dot(plane.normal, relativePosition) - ball.radius;
+						f32 projMovement = -Dot(plane.normal, ball.moveable.delta);
+						if (Absolute(projMovement) > 0) {
+							f32 f = distanceToPlane / projMovement;
+							if ((f >= 0.0f) && (tMin > f)) {
+								tMin = Maximum(0.0f, f - EpsilonTime);
+								hitNormal = plane.normal;
+								wasHit = true;
+								hitEntity = &plane.entity;
+							}
+						}
+					}
+
+					// Paddles
+					for (Paddle &paddle : paddles) {
+						Vec2f relativePosition = ball.moveable.position - paddle.moveable.position;
+
+						f32 minkowskiRight = (paddle.ext.w + ball.radius);
+						f32 minkowskiLeft = -(paddle.ext.w + ball.radius);
+						f32 minkowskiTop = (paddle.ext.h + ball.radius);
+						f32 minkowskiBottom = -(paddle.ext.h + ball.radius);
+
+						constexpr u32 segmentCount = 4;
+						DeltaPlane2D paddleSegments[segmentCount] = {
+							{ minkowskiRight, relativePosition.x, relativePosition.y, ball.moveable.delta.x, ball.moveable.delta.y, minkowskiBottom, minkowskiTop, Vec2f(1, 0) },
+							{ minkowskiLeft, relativePosition.x, relativePosition.y, ball.moveable.delta.x, ball.moveable.delta.y, minkowskiBottom, minkowskiTop, Vec2f(-1, 0) },
+							{ minkowskiTop, relativePosition.y, relativePosition.x, ball.moveable.delta.y, ball.moveable.delta.x, minkowskiLeft, minkowskiRight, Vec2f(0, 1) },
+							{ minkowskiBottom, relativePosition.y, relativePosition.x, ball.moveable.delta.y, ball.moveable.delta.x, minkowskiLeft, minkowskiRight, Vec2f(0, -1) },
+						};
+
+						IntersectionResult intersection = IntersectLines(tMin, EpsilonTime, segmentCount, paddleSegments);
+						if (intersection.wasHit) {
+							f32 f = intersection.tMin;
+							if ((f >= 0.0f) && (tMin > f)) {
+								tMin = Maximum(0.0f, f - EpsilonTime);
+								hitNormal = intersection.normal;
+								wasHit = true;
+								hitEntity = &paddle.entity;
+							}
+						}
+					}
+
+					ball.moveable.position += tMin * ball.moveable.delta;
+
+					if (wasHit) {
+						f32 restitution = 1.0f;
+						ball.moveable.delta = targetPosition - ball.moveable.position;
+						ball.moveable.delta += -(1 + restitution) * Dot(ball.moveable.delta, hitNormal) * hitNormal;
+						ball.moveable.velocity += -(1 + restitution) * Dot(ball.moveable.velocity, hitNormal) * hitNormal;
+						tMax = tMin;
+						assert(hitEntity != nullptr);
+						HandleBallCollisions(ball, hitEntity);
 					}
 				}
 
-				ball.position += tMin * ball.delta;
+				// Paddle movements and collisions
+				for (Paddle &paddle : paddles) {
+					f32 tMax = 1.0f;
+					for (u32 iteration = 0; iteration < 4; ++iteration) {
+						f32 tMin = tMax;
+						Vec2f hitNormal = Vec2f();
+						bool wasHit = false;
+						Entity *hitEntity = nullptr;
 
-				if (wasHit) {
-					f32 restitution = 1.0f;
-					ball.delta = targetPosition - ball.position;
-					ball.delta += -(1 + restitution) * Dot(ball.delta, hitNormal) * hitNormal;
-					ball.velocity += -(1 + restitution) * Dot(ball.velocity, hitNormal) * hitNormal;
-					tMax = tMin;
+						Vec2f targetPosition = paddle.moveable.position + paddle.moveable.delta;
+
+						// Planes
+						for (Plane &plane : planes) {
+							Vec2f planeCenter = plane.normal * plane.distance;
+							Vec2f relativePosition = paddle.moveable.position - planeCenter;
+							f32 distanceToPlane = Dot(plane.normal, relativePosition) - Absolute(Dot(paddle.ext, plane.normal));
+							f32 projMovement = -Dot(plane.normal, paddle.moveable.delta);
+							if (Absolute(projMovement) > 0) {
+								f32 f = distanceToPlane / projMovement;
+								if ((f >= 0.0f) && (tMin > f)) {
+									tMin = Maximum(0.0f, f - EpsilonTime);
+									hitNormal = plane.normal;
+									wasHit = true;
+									hitEntity = &plane.entity;
+								}
+							}
+						}
+
+						paddle.moveable.position += tMin * paddle.moveable.delta;
+
+						if (wasHit) {
+							f32 restitution = 0.0f;
+							paddle.moveable.delta = targetPosition - paddle.moveable.position;
+							paddle.moveable.delta += -(1 + restitution) * Dot(paddle.moveable.delta, hitNormal) * hitNormal;
+							paddle.moveable.velocity += -(1 + restitution) * Dot(paddle.moveable.velocity, hitNormal) * hitNormal;
+							tMax = tMin;
+						}
+					}
 				}
 			}
-		#endif
 		}
+
+		void Pong::UpdateAI(const f32 dt) {
+			if (paddles.size() == 2) {
+				Paddle &paddle = paddles[1];
+				Vec2f relPos = paddle.moveable.position - ball.moveable.position;
+				f32 projPos = Dot(Vec2f::Up, relPos);
+				Vec2f direction = Vec2f();
+				if (projPos != 0) {
+					if (Absolute(projPos) > ball.radius) {
+						f32 n = projPos < 0 ? 1.0f : -1.0f;
+						paddle.moveable.acceleration.y = n * paddle.moveable.speed;
+					}
+				}
+			}
+		}
+
+		void Pong::Update(const Input &input) {
+			SetExternalForces(input.deltaTime);
+			HandlePlayerInput(input);
+			UpdateAI(input.deltaTime);
+			MoveEntities(input.deltaTime);
+		}
+
 		void Pong::Render(const Input &input) {
 			const f32 dt = input.deltaTime;
 
@@ -92,9 +304,9 @@ namespace fs {
 
 			renderer->DrawRectangle(Vec2f(0, 0), Vec2f(GAME_WIDTH, GAME_HEIGHT) * 0.5f, Vec4f::White, false, 2.0f);
 
-			renderer->DrawCircle(ball.position, ball.radius, Vec4f::Blue, false, 16, 2.0f);
-
-			renderer->DrawRectangle(paddle.position, paddle.ext, Vec4f::Blue, false, 2.0f);
+			for (const Paddle &paddle : paddles) {
+				renderer->DrawRectangle(paddle.moveable.position, paddle.ext, paddle.color, true, 2.0f);
+			}
 
 			for (const Plane &plane : planes) {
 				Vec2f tangent = Cross(1.0f, plane.normal);
@@ -105,41 +317,7 @@ namespace fs {
 				renderer->DrawLine(center, center + plane.normal * NormalArrowSize, Vec4f::Red, 2.0f);
 			}
 
-			Vec2f targetBallPos = ball.position + Vec2f(-1, 0) * (GAME_HALF_HEIGHT * PlaneAreaScale - ball.radius * 0.75f);
-			ball.acceleration = 2.0f * (targetBallPos - ball.position) * (1.0f / (dt * dt));
-			renderer->DrawCircle(targetBallPos, ball.radius, Vec4f::Red, false, 16, 2.0f);
-
-			Vec2f targetPaddlePos = paddle.position + Vec2f(1, 0) * 2.0f;
-			paddle.acceleration = 2.0f * (targetPaddlePos - paddle.position) * (1.0f / (dt * dt));
-			renderer->DrawRectangle(targetPaddlePos, paddle.ext, Vec4f::Red, false, 2.0f);
-
-			{
-				Vec2f ballDelta = 0.5f * ball.acceleration * (dt * dt) + ball.velocity * dt;
-				Vec2f paddleDelta = 0.5f * paddle.acceleration * (dt * dt) + paddle.velocity * dt;
-				Vec2f relativeMovement = ballDelta - paddleDelta;
-				Vec2f relativePosition = ball.position - paddle.position;
-
-				f32 minkowskiRight = (paddle.ext.w + ball.radius);
-				f32 minkowskiLeft = -(paddle.ext.w + ball.radius);
-				f32 minkowskiTop = (paddle.ext.h + ball.radius);
-				f32 minkowskiBottom = -(paddle.ext.h + ball.radius);
-
-				DeltaPlane2D deltaPlane;
-				deltaPlane.plane = minkowskiRight;
-				deltaPlane.minY = minkowskiBottom;
-				deltaPlane.maxY = minkowskiTop;
-				deltaPlane.deltaX = relativeMovement.x;
-				deltaPlane.deltaY = relativeMovement.y;
-				deltaPlane.relX = relativePosition.x;
-				deltaPlane.relY = relativePosition.y;
-				f32 tMin = 1.0f;
-				IntersectionResult intersection = IntersectLines(tMin, EpsilonTime, 1, &deltaPlane);
-				if (intersection.wasHit) {
-					tMin = intersection.tMin;
-				}
-				Vec2f p = relativeMovement * tMin;
-				renderer->DrawCircle(p, ball.radius, Vec4f::Yellow, false, 16, 2.0f);
-			}
+			renderer->DrawCircle(ball.moveable.position, ball.radius, ball.color, true, 16, 2.0f);
 
 			renderer->EndFrame();
 		}
